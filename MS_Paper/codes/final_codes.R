@@ -3,14 +3,14 @@
 # library
 ##############################
 library(readxl)
-library(tidyverse)
+library(tidyr)
 library(dplyr)
 library(lme4)
 library(car)
 library(effects)
 library(ggplot2)
 library(scales)
-library(MuMIn)
+library(multcomp)
 library(emmeans)
 
 ##############################
@@ -33,7 +33,7 @@ theme <- theme_bw() +
 # Summarizing available nutrients
 ####################################################
 
-nutrients <- read_excel("~/Desktop/manuscript/data/nutrients.xlsx")
+nutrients <- read_excel("~/Desktop/MSProject/MS_Paper/data/nutrients.xlsx")
 nutrients$warming <-ifelse(nutrients$trt %in% c("C", "R"), "Ambient", "OTC")
 nutrients$residue <-ifelse(nutrients$trt %in% c("C", "W"), "noResidue", "Residue")
 
@@ -104,6 +104,7 @@ hist(residuals(om_model))
 # interaction was not significant. we ran pairwise comparison for the
 # significant main effects.
 om.emm <- emmeans(om_model, ~ irrigation)
+cld(om.emm)
 contrast(om.emm, "consec", simple = "each", combine = TRUE)
 
 
@@ -120,6 +121,7 @@ hist(residuals(om_model1))
 ####################################################
 # OM vs temp
 
+
 pred_c <- effect(mod = om_model1, term = "temp") %>% as.data.frame()
 
 (om_temp_graph <- ggplot(data = om.plot) +
@@ -132,7 +134,7 @@ pred_c <- effect(mod = om_model1, term = "temp") %>% as.data.frame()
                      values = c("brown4", "navyblue")) +
   scale_color_manual(labels = c("Dryland", "Irrigated"),
                       values = c("brown4", "navyblue")) + 
-  scale_y_continuous(limits = c(0, 1.5)) +
+  scale_y_continuous(limits = c(0, 1.2)) +
   scale_shape_manual(labels = c("No Residue", "Residue"),
                        values = c(21,22)) +
   labs( y = "Organic matter (%)", 
@@ -146,8 +148,7 @@ pred_c <- effect(mod = om_model1, term = "temp") %>% as.data.frame()
 OM.average <- as.data.frame(emmeans(om_model, ~warming * residue * irrigation))
 
 (om_graph <- ggplot(om.plot, aes(x = warming, color = residue))+
-    geom_boxplot(aes(y = OM, color  = residue), alpha = 0.5) +
-    geom_point(aes(y = OM, color  = residue), alpha = 0.5,
+    geom_point(aes(y = OM, color  = residue), alpha = 0.5, size = 2,
                position = position_jitterdodge(dodge.width = 0.75, jitter.width = 0.3)) +
     geom_point(data = OM.average,
                aes(x = warming, y = emmean, group = residue),
@@ -166,7 +167,7 @@ OM.average <- as.data.frame(emmeans(om_model, ~warming * residue * irrigation))
 #########################################################
 # MBC
 
-mbc <- read_excel("~/Desktop/manuscript/data/mbc.final.xlsx")
+mbc <- read_excel("~/Desktop/MSProject/MS_Paper/data/mbc.final.xlsx")
 mbc$warming <-ifelse(mbc$trt %in% c("C", "R"), "Ambient", "OTC")
 mbc$residue <-ifelse(mbc$trt %in% c("C", "W"), "noResidue", "Residue")
 
@@ -225,9 +226,11 @@ plot(mbc_model1)
 # we ran pairwise comparison for the significant interaction and
 # significant main effects.
 mbc.emm <- emmeans(mbc_model1, ~ irrigation)
+cld(mbc.emm)
 contrast(mbc.emm, "consec", simple = "each", combine = TRUE)
 
 mbc.emm.int <- emmeans(mbc_model1, ~ residue:warming)
+cld(mbc.emm.int)
 contrast(mbc.emm.int, "consec", simple = "each", combine = TRUE)
 
 
@@ -253,8 +256,7 @@ mbc.average$ucl <- exp(mbc.average$asymp.UCL)
 mbc.average$lcl <- exp(mbc.average$asymp.LCL)
 
 (mbc_graph <- ggplot(mbc.plot, aes(x = warming, color = residue)) +
-    geom_boxplot(aes(y = mbc, color  = residue), alpha = 0.5) +
-    geom_point(aes(y = mbc, color  = residue), alpha = 0.5,
+    geom_point(aes(y = mbc, color  = residue), alpha = 0.5, size = 2,
                position = position_jitterdodge(dodge.width = 0.75, jitter.width = 0.3)) +
     geom_point(data = mbc.average,
                aes(x = warming, y = avg, group = residue),
@@ -315,7 +317,7 @@ pred_mbc_nit <- effect(mod = mbc_numeric, term = "nitrate") %>% as.data.frame()
 ###############################################
 
 # soil respiration
-respiration <- read_excel("~/Desktop/manuscript/data/respiration.xlsx")
+respiration <- read_excel("~/Desktop/MSProject/MS_Paper/data/respiration.xlsx")
 respiration$warming <-ifelse(respiration$trt %in% c("C", "R"), "Ambient", "OTC")
 respiration$residue <-ifelse(respiration$trt %in% c("C", "W"), "noResidue", "Residue")
 
@@ -367,7 +369,7 @@ gresp_model3 <- glmer(flux ~ warming * residue * irrigation +
 
 AIC(gresp_model1, gresp_model2, gresp_model3)
 
-# model 2 (inverse link gamma distrubution looks better
+# model 2 (inverse link gamma distribution looks better
 Anova(gresp_model2)
 plot(gresp_model2)
 
@@ -375,9 +377,11 @@ plot(gresp_model2)
 # we ran pairwise comparison for the significant interaction and
 # significant main effects.
 resp.emm <- emmeans(gresp_model2, ~ residue)
+cld(resp.emm)
 contrast(resp.emm, "consec", simple = "each", combine = TRUE)
 
 resp.emm.int <- emmeans(gresp_model2, ~ warming:irrigation)
+cld(resp.emm.int)
 contrast(resp.emm.int, "consec", simple = "each", combine = TRUE)
  
 # continuous predictor only model transformed
@@ -422,8 +426,7 @@ resp.average$ucl <- 1/(resp.average$asymp.UCL)
 resp.average$lcl <- 1/(resp.average$asymp.LCL)
 
 (flux_graph <- ggplot(respiration, aes(x = warming, color = residue)) +
-    geom_boxplot(aes(y = flux, color  = residue), alpha = 0.5) +
-    geom_point(aes(y = flux, color  = residue), alpha = 0.5,
+    geom_point(aes(y = flux, color  = residue), alpha = 0.5, size = 2,
                position = position_jitterdodge(dodge.width = 0.75, jitter.width = 0.3)) +
     geom_point(data = resp.average,
                aes(x = warming, y = avg, group = residue),
@@ -446,7 +449,7 @@ resp.average$lcl <- 1/(resp.average$asymp.LCL)
 
 ####################################################
 # yield
-yield_data <-  read_excel("~/Desktop/manuscript/data/yield.xlsx")
+yield_data <-  read_excel("~/Desktop/MSProject/MS_Paper/data/yield.xlsx")
 yield_data$warming <-ifelse(yield_data$trt %in% c("C", "R"), "Ambient", "OTC")
 yield_data$residue <-ifelse(yield_data$trt %in% c("C", "W"), "noResidue", "Residue")
 
@@ -469,11 +472,11 @@ Anova(aboveground_model)
 plot(aboveground_model)
 qqnorm(residuals(aboveground_model))
 hist(residuals(aboveground_model))
-r.squaredGLMM(aboveground_model)
 
-# pairwise compariosn for significant main effects & interaction effects
+# pairwise comparison for significant main effects & interaction effects
 
 agb.emm <- emmeans(aboveground_model, ~ irrigation)
+cld(agb.emm)
 contrast(agb.emm, "consec", simple = "each", combine = TRUE)
 
 # model with continuous predictors 
@@ -487,15 +490,14 @@ Anova(aboveground_model1)
 plot(aboveground_model1)
 qqnorm(residuals(aboveground_model1))
 hist(residuals(aboveground_model1))
-r.squaredGLMM(aboveground_model1)
 
 
-# aboveground biomass by trt
+
+# above ground biomass by trt
 agb <- as.data.frame(emmeans(aboveground_model, ~warming * residue * irrigation))
 
 (agb_graph <- ggplot(yield_data, aes(x = warming, color = residue)) +
-    geom_boxplot(aes(y = above.ground.biomass, color  = residue), alpha = 0.5) +
-    geom_point(aes(y = above.ground.biomass, color  = residue), alpha = 0.5,
+    geom_point(aes(y = above.ground.biomass, color  = residue), alpha = 0.5, size = 2,
                position = position_jitterdodge(dodge.width = 0.75, jitter.width = 0.3)) +
     geom_point(data = agb,
                aes(x = warming, y = emmean, group = residue),
@@ -544,14 +546,15 @@ Anova(yield_model)
 plot(yield_model)
 qqnorm(residuals(yield_model))
 hist(residuals(yield_model))
-r.squaredGLMM(yield_model)
 
-# pairwise compariosn for significant main effects & interaction effects
+# pairwise comparison for significant main effects & interaction effects
 
 yield.emm.irri <- emmeans(yield_model, ~ irrigation)
+cld(yield.emm.irri)
 contrast(yield.emm.irri, "consec", simple = "each", combine = TRUE)
 
 yield.emm.residue <- emmeans(yield_model, ~ residue)
+cld(yield.emm.residue)
 contrast(yield.emm.residue, "consec", simple = "each", combine = TRUE)
 
 # model with continuous predictors only
@@ -562,7 +565,6 @@ Anova(yield_model1)
 plot(yield_model1)
 qqnorm(residuals(yield_model1))
 hist(residuals(yield_model1))
-r.squaredGLMM(yield_model1)
 
 
 ####################################################
@@ -572,8 +574,7 @@ seed.cotton <-
   as.data.frame(emmeans(yield_model, ~warming * residue * irrigation))
 
 (yield_graph <- ggplot(yield_data, aes(x = warming, color = residue)) +
-    geom_boxplot(aes(y = seed.cotton, color  = residue), alpha = 0.5) +
-    geom_point(aes(y = seed.cotton, color  = residue), alpha = 0.5, 
+    geom_point(aes(y = seed.cotton, color  = residue), alpha = 0.5, size = 2,
                position = position_jitterdodge(dodge.width = 0.75, jitter.width = 0.3)) +
     geom_point(data = seed.cotton,
                aes(x = warming, y = emmean, group = residue),
@@ -603,11 +604,12 @@ Anova(bgb_model)
 plot(bgb_model)
 qqnorm(residuals(bgb_model))
 hist(residuals(bgb_model))
-r.squaredGLMM(bgb_model)
+
 
 # pairwise comparison for significant predictors
 
 bgb.emm <- emmeans(bgb_model, ~ irrigation)
+cld(bgb.emm)
 contrast(bgb.emm, "consec", simple = "each", combine = TRUE)
 
 # model with continuous predictors only
@@ -618,7 +620,7 @@ Anova(bgb_model1)
 plot(bgb_model1)
 qqnorm(residuals(bgb_model1))
 hist(residuals(bgb_model1))
-r.squaredGLMM(bgb_model1)
+
 
 
 ####################################################
@@ -628,8 +630,7 @@ r.squaredGLMM(bgb_model1)
 bgb <- as.data.frame(emmeans(bgb_model, ~warming * residue * irrigation))
 
 (bgb_graph <- ggplot(yield_data, aes(x = warming, color = residue)) +
-    geom_boxplot(aes(y = rootbiomass, color  = residue), alpha = 0.5) +
-    geom_point(aes(y = rootbiomass, color  = residue), alpha = 0.5,
+    geom_point(aes(y = rootbiomass, color  = residue), alpha = 0.5, size = 2,
                position = position_jitterdodge(dodge.width = 0.75, jitter.width = 0.3)) +
     geom_point(data = bgb,
                aes(x = warming, y = emmean, group = residue),
