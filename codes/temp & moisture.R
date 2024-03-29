@@ -4,7 +4,6 @@
 library(readxl)
 library(tidyverse)
 library(lme4)
-library(effects)
 library(cowplot)
 library(scales)
 library(car)
@@ -30,7 +29,7 @@ theme <- theme_bw() +
 ################################################
 #Temperature
 
-temp <- read_excel("~/Desktop/MS data/EM50/TM.final.xlsx", sheet = 2)
+temp <- read_excel("~/Desktop/MSProject/data/TM.final.xlsx", sheet = 2)
 temp <- temp %>%
   pivot_longer(c(C, W, R, WR),
                names_to = "trt",
@@ -55,7 +54,7 @@ temp <- temp %>%
 ####################################################
 #  Soil Moisture
 
-moist<- read_excel("~/Desktop/MS data/EM50/TM.final.xlsx", sheet = 3)
+moist<- read_excel("~/Desktop/MSProject/data/TM.final.xlsx", sheet = 3)
 moist <- moist %>%
   pivot_longer(c(C, W, R, WR),
                names_to = "trt",
@@ -97,7 +96,7 @@ moist.average <- moist %>%
 
 daily.TM <- merge(temp.average, moist.average)
 daily.TM <- daily.TM[-1, ] # removing first row - not a full day average
-daily.TM$warming <-ifelse(daily.TM$trt %in% c("C", "R"), "Control", "OTC")
+daily.TM$warming <-ifelse(daily.TM$trt %in% c("C", "R"), "Ambient", "OTC")
 daily.TM$residue <-ifelse(daily.TM$trt %in% c("C", "W"), "noResidue", "Residue")
 
 daily.TM[, c(1:4, 7, 13, 14)] <- lapply(daily.TM[, c(1:4, 7, 13, 14)], factor)
@@ -126,9 +125,9 @@ weekly.TM$week <- as.POSIXct(weekly.TM$week)
 
 # temporal variation of temperature (graph)
 # mean temperature
-(fig1 <- ggplot(weekly.TM, aes(week, temp, color = trt))+
+(temp_graph <- ggplot(weekly.TM, aes(week, temp, color = trt))+
   geom_line(size = 1) + 
-   scale_color_manual(values = c("#131E3A", "#980019", "#0018F9", "#0B6623"),
+   scale_color_manual(values = c("#131E3A", "#980019", "#0018F9", "#660033"),
                       labels = c("C", "OTC", "R", "OTC + R")) +
   xlab( "Months") +
   ylab(expression("Soil Temperature ("*~degree*C*")")) + 
@@ -147,15 +146,15 @@ weekly.TM$week <- as.POSIXct(weekly.TM$week)
 # daily temperature range
 (dt <- ggplot(weekly.TM)+
     geom_line(aes(x = week, y = mean.dtr, color = trt), size = 1) + 
-    scale_color_manual(values = c("#131E3A", "#980019", "#0018F9", "#0B6623"),
+    scale_color_manual(values = c("#131E3A", "#980019", "#0018F9", "#660033"),
                        labels = c("C", "OTC", "R", "OTC + R")) +
-    xlab( "Months") +
     ylab(expression("Daily temperature range ("*~degree*C*")")) + 
-    facet_wrap(~ irrigation) + theme)
+    facet_wrap(~ irrigation) + theme +
+    theme(axis.title.x = element_blank()))
 
 #######################################################
 # precipitation
-precipitation <- read_excel("~/Desktop/MS data/weather.data.xlsx")
+precipitation <- read_excel("~/Desktop/MSProject/data/weather.data.xlsx")
 str(precipitation)
 weekly.rain <- precipitation %>%
   group_by(week = cut(date.time, "week", start.on.monday = FALSE)) %>%
@@ -167,14 +166,14 @@ weekly.rain$week <- as.POSIXct(weekly.rain$week)
 
 ####################################################
 # temporal variation of moisture (graph)
-(fig2 <- ggplot(weekly.TM, aes(week, color = trt)) + 
+(vwc_graph <- ggplot(weekly.TM, aes(week, color = trt)) + 
   geom_line(aes(y = moist), size = 1) +  
    geom_bar(data = weekly.rain, aes(x = week, y = rain/100), width = 0.01, 
                                     stat = "identity", 
                                     fill = "deepskyblue3" , 
                                     color = "deepskyblue3") +
    scale_y_continuous(sec.axis = sec_axis (~ .*100, name = "Rainfall (mm)")) +
-   scale_color_manual(values = c("#131E3A", "#980019", "#0018F9", "#0B6623"),
+   scale_color_manual(values = c("#131E3A", "#980019", "#0018F9", "#660033"),
                       labels = c("C", "OTC", "R", "OTC + R")) +
   xlab( "Months") +
   ylab(expression("Volumetric water content ("*m^3/m^3*")")) + 
@@ -183,6 +182,7 @@ weekly.rain$week <- as.POSIXct(weekly.rain$week)
 ################################################################
 
 # temperature model
+
 monthly.avg.TM <- daily.TM %>% 
   group_by(block, plot, warming, residue, irrigation, month) %>% 
   summarize(moisture = mean(mean.moist),
@@ -190,15 +190,13 @@ monthly.avg.TM <- daily.TM %>%
             mean.dtr = mean(dtr))
 
 
-# best temperature model
-bestFitModel(x = monthly.avg.TM, dependent_var = monthly.avg.TM$temp)
+# temperature model
 
-temp_model <- lmer(temp ~ warming + residue + irrigation +
-                           (1|block) + (1|month), REML = F,
+temp_model <- lmer(temp ~ warming * residue * irrigation +
+                           (1|block) + (1|month),
                          data = monthly.avg.TM)
 
-anova(temp_model)
-Anova(temp_model)
+Anova(temp_model, type = 3)
 summary(temp_model)
 plot(temp_model)
 qqnorm(residuals(temp_model))
@@ -206,50 +204,43 @@ hist(residuals(temp_model))
 r.squaredGLMM(temp_model)
 
 # pairwise comparison
-emmeans(temp_model, specs = pairwise ~ residue)
-emmeans(temp_model, specs = pairwise ~ irrigation)
+emmeans(temp_model, specs = pairwise ~ residue) # residue decreased temp by 0.6
+emmeans(temp_model, specs = pairwise ~ irrigation) # irrigation decreased temp by 0.8
 
 # temp vs moisture
-temp2 <- lmer(temp ~ moisture + (1|block) + (1|month), REML = F,
+temp2 <- lmer(temp ~ moisture + (1|block) + (1|month),
               data = monthly.avg.TM )
-Anova(temp2)
+Anova(temp2, type =3)
 r.squaredGLMM(temp2)
 
 ####################################################
 # temp by trt (graph)
 
-temp_plot <- daily.TM %>% 
-  group_by(block, plot, warming, residue, irrigation) %>%
-  summarise(temp = mean(mean.temp))
+temp.avg <-
+  as.data.frame(emmeans(temp_model, ~warming * residue * irrigation)) 
 
-temp.avg <- temp_plot %>% 
-  group_by(warming, residue, irrigation) %>%
-  summarize(mean.T = mean(temp),
-            n = n(),
-            se = sd(temp)/sqrt(n))
-
-(fig3 <- ggplot(temp.avg, aes(warming, mean.T))  +
-  geom_point(aes(color = residue), size = 3, 
+(temp.avg.graph <- ggplot(temp.avg, aes(warming, emmean))  +
+  geom_point(aes(color = residue), size = 3, shape = 15, alpha = 0.8,
              position = position_dodge(width = 0.2)) +
-  geom_errorbar(aes(ymin = mean.T - se,
-                    ymax = mean.T + se, color = residue), width = 0.05,
+  geom_errorbar(aes(ymin = lower.CL,
+                    ymax = upper.CL, color = residue), width = 0.05,alpha = 0.8,
                 position = position_dodge(width = 0.2)) +
   scale_color_manual(labels = c("No Residue", "Residue"),
                      values = c("red3", "blue3")) +
   labs(x="Treatments", y = expression("Soil Temperature ("*~degree*C*")")) +
   facet_grid( ~ irrigation) +
+    scale_y_continuous(limits = c(18, 32)) +
   theme)
 
 ##################################################
 # moisture model
 
-bestFitModel(x = monthly.avg.TM, dependent_var = monthly.avg.TM$moisture)
 
-moist_model <- lmer(moisture ~ warming * residue * irrigation + (1|block) + (1|month), REML = F,
+moist_model <- lmer(moisture ~ warming * residue * irrigation +
+                      (1|block) + (1|month),
            data = monthly.avg.TM)
 
-anova(moist_model)
-Anova(moist_model)
+Anova(moist_model, type = 3)
 summary(moist_model)
 plot(moist_model)
 qqnorm(residuals(moist_model))
@@ -262,39 +253,27 @@ emmeans(moist_model, specs = pairwise ~ warming:residue:irrigation)
 ####################################################
 # moisture by trt
 
-moist_plot <- daily.TM %>% 
-  group_by(block, plot, residue, warming, irrigation) %>%
-  summarise(moist = mean(mean.moist))
+moist.avg <-
+  as.data.frame(emmeans(moist_model, ~warming * residue * irrigation))
 
-moist.avg <- moist_plot %>% 
-  group_by(residue, warming, irrigation) %>%
-  summarize(mean.moist = mean(moist),
-            n = n(),
-            se = sd(moist)/sqrt(n))
-
-(fig4 <- ggplot(moist.avg, aes(warming, mean.moist)) +
-  geom_point(aes(color = residue), size = 3, 
+(moist_avg_graph <- ggplot(moist.avg, aes(warming, emmean)) +
+  geom_point(aes(color = residue), size = 3,shape =15, alpha = 0.8,
              position = position_dodge(width = 0.2)) +
-  geom_errorbar(aes(ymin = mean.moist - se,
-                    ymax = mean.moist + se, color = residue), width = 0.05,
+  geom_errorbar(aes(ymin = lower.CL,
+                    ymax = upper.CL, color = residue), width = 0.05,alpha= 0.8,
                 position = position_dodge(width = 0.2)) +
   labs(x="Treatments", y = expression("Volumetric water content ("*m^3/m^3*")")) +
   scale_color_manual(labels = c("No Residue", "Residue"),
                      values = c("red3", "blue3")) +
     facet_grid( ~ irrigation) +
+    scale_y_continuous(limits = c(0.06, 0.25)) +
     theme)
 
-####################################################
 
-# soil temp vs moisture
-moiturevstemp <- lmer(moisture ~ temp + (1|block) + (1|month), data = monthly.avg.TM, REML = F)
-anova(moiturevstemp) # not significant
-Anova(moiturevstemp)
-r.squaredGLMM(moiturevstemp)
 #################################################
 
 # air temperature
-air.temp <- read_excel("~/Desktop/MS data/hobo/hobo.final.xlsx")
+air.temp <- read_excel("~/Desktop/MSProject/data/hobo.final.xlsx")
 
 # removing outliers
 boxplot(air.temp$temperature)
@@ -311,7 +290,7 @@ air.temp.average <- air.temp %>%
   summarize(mean.temp = mean(temperature),
             mean.light = mean(light))
 
-air.temp.average$warming <-ifelse(air.temp.average$trt %in% c("C", "R"), "Control", "OTC")
+air.temp.average$warming <-ifelse(air.temp.average$trt %in% c("C", "R"), "Ambient", "OTC")
 
 air.temp.average$residue <-ifelse(air.temp.average$trt %in% c("C", "W"), "noResidue", "Residue")
 
@@ -333,9 +312,9 @@ weekly.air.temperature <- air.temp.average %>%
 weekly.air.temperature$week <- strptime(weekly.air.temperature$week, format  = "%Y-%m-%d")
 weekly.air.temperature$week <- as.POSIXct(weekly.air.temperature$week)
 
-(fig6 <- ggplot(weekly.air.temperature, aes(week, air.temp, color = trt)) +
+(air.temp.trend <- ggplot(weekly.air.temperature, aes(week, air.temp, color = trt)) +
   geom_line(size = 1) + 
-    scale_color_manual(values = c("#131E3A", "#980019", "#0018F9", "#0B6623"),
+    scale_color_manual(values = c("#131E3A", "#980019", "#0018F9", "#660033"),
                        labels = c("C", "OTC", "R", "OTC + R")) +
   labs(x = "Months", y = (expression("Air temperature ("*~degree*C*")"))) + 
   facet_wrap(~irrigation) + 
@@ -350,14 +329,12 @@ monthly.air.temp <- air.temp.average %>%
   summarize(temp = mean(mean.temp),
             light = (mean(mean.light)))
 
-bestFitModel(x = monthly.air.temp, dependent_var = monthly.air.temp$temp)
 
-air_temp_model <- lmer(temp ~ warming + residue + irrigation +
-       warming:irrigation + (1|block) + (1|month), REML = F,
+air_temp_model <- lmer(temp ~ warming * residue * irrigation 
+                       + (1|block) + (1|month),
      data = monthly.air.temp)
 
-anova(air_temp_model)
-Anova(air_temp_model)
+Anova(air_temp_model, type = 3)
 summary(air_temp_model)
 plot(air_temp_model)
 qqnorm(residuals(air_temp_model))
@@ -365,7 +342,8 @@ hist(residuals(air_temp_model))
 r.squaredGLMM(air_temp_model)
 
 # pairwise comparison
-emmeans(air_temp_model, specs = pairwise ~ warming:irrigation)
+emmeans(air_temp_model, specs = pairwise ~ warming) # OTC increased temp by 2.2
+
 # air temperature model continuous predictors
 
 airtemp.scaled <- as.data.frame(scale(monthly.air.temp[, 6:7], center = F))
@@ -373,10 +351,9 @@ airtemp.scaled$block <-monthly.air.temp$block
 airtemp.scaled$month <-monthly.air.temp$month
 
 air_temp_model1 <- lmer(temp ~ light + (1|block) + (1|month),
-                        REML = F,
                         data = airtemp.scaled)
-anova(air_temp_model1)
-Anova(air_temp_model1)
+
+Anova(air_temp_model1, type = 3)
 summary(air_temp_model)
 plot(air_temp_model1)
 qqnorm(residuals(air_temp_model1))
@@ -387,46 +364,23 @@ r.squaredGLMM(air_temp_model1)
 
 ####################################################
 # air temp by trt (graph)
+airtemp.avg <- 
+  as.data.frame(emmeans(air_temp_model, ~warming * residue * irrigation))
 
-air_temp_plot <- air.temp.average %>% 
-  group_by(block, warming, residue, irrigation) %>%
-  summarise(temp = mean(mean.temp))
-
-airtemp.avg <- air_temp_plot %>% 
-  group_by(warming, residue, irrigation) %>%
-  summarize(mean.T = mean(temp),
-            n = n(),
-            se = sd(temp)/sqrt(n))
-
-(fig7 <- ggplot(airtemp.avg, aes(warming, mean.T)) +
-  geom_point(aes(color = residue), size = 3, 
+(airtemp.avg.graph <- ggplot(airtemp.avg, aes(warming, emmean)) +
+  geom_point(aes(color = residue), size = 3, shape = 15, alpha = 0.8,
              position = position_dodge(width = 0.2)) +
-  geom_errorbar(aes(ymin = mean.T - se,
-                    ymax = mean.T + se, color = residue), width = 0.05,
+  geom_errorbar(aes(ymin = lower.CL,
+                    ymax = upper.CL, color = residue), width = 0.05, alpha = 0.8,
                 position = position_dodge(width = 0.2)) +
   labs(x="Treatments", y = expression("Air temperature ("*~degree*C*")")) +
   scale_color_manual(labels = c("No Residue", "Residue"),
                      values = c("red3", "blue3")) +
   facet_wrap(~irrigation) + 
+    scale_y_continuous(limits = c(10,45)) +
   theme)
   
-####################################################
-# air temp vs light
 
-avgair <- air.temp.average %>% group_by(block, trt, irrigation) %>%
-  summarise(mean.T = mean(mean.temp),
-            light = mean(mean.light/1000))
-
-e <- effect(term = "light", mod = air_temp_model) %>% as.data.frame()
-
-(fig8 <- ggplot(avgair, aes(light, mean.T)) +
-  geom_point(aes(color = irrigation), size = 2) + 
-  geom_line(data = e, aes(light, fit), color = "black", size = 1, linetype = 1) +
-  theme +  scale_color_manual(labels = c("Dryland", "Irrigated"),
-                             values = c("#A80000", "#107C10")) +
-  labs( x= "light (Lux)", y = expression("Air temperature ("*~degree*C*")")) +
-  scale_x_continuous(labels = unit_format(unit = "e+03")) +
-  scale_y_continuous(limits = c(25, 32)))
 
 ####################################################
 # light between OTC and control
@@ -435,12 +389,11 @@ e <- effect(term = "light", mod = air_temp_model) %>% as.data.frame()
 lightOTC <- monthly.air.temp %>% group_by(block, warming) %>%
   summarise(mean.light = mean(light))
 
-
 light_model <- lmer(mean.light ~ warming + (1|block),
-                    data = lightOTC, REML = F)
+                    data = lightOTC)
 
-anova(light_model)
-Anova(light_model)
+
+Anova(light_model, type=3)
 
 summary(light_model)
 # pairwise comparision
@@ -450,6 +403,13 @@ emmeans(light_model, specs = pairwise ~ warming)
 
 
 # Plots
+
+cowplot :: plot_grid(temp_graph, temp.avg.graph, ncol = 2, labels = "auto")
+cowplot :: plot_grid(air.temp.trend, airtemp.avg.graph, ncol = 2, labels = "auto")
+
+cowplot :: plot_grid(vwc_graph, moist_avg_graph, ncol = 2, labels = "auto")
+
+
 plot_grid(fig1, fig3, ncol = 2, labels = "auto")
 plot_grid(fig2, fig4, ncol = 2, labels = "auto")
 plot_grid(fig6, fig7, ncol = 2, labels = "auto")

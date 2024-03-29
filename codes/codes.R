@@ -23,7 +23,7 @@ theme <- theme_bw() +
         legend.direction = "horizontal",
         legend.title = element_blank(),
         legend.text = element_text(size = 14),
-        strip.background = element_rect(fill = NA, size = 1),
+        strip.background = element_rect(fill = NA, linewidth = 1),
         strip.text = element_text(size = 14),
         axis.title = element_text(size = 16),
         axis.text = element_text(size = 14),
@@ -201,7 +201,7 @@ OM.average <- om_plot %>%
 #########################################################
 # MBC
 
-mbc <- read_excel("mbc.final.xlsx")
+mbc <- read_excel("~/Desktop/mbc.final.xlsx")
 mbc$warming <-ifelse(mbc$trt %in% c("C", "R"), "Ambient", "Warmed")
 mbc$residue <-ifelse(mbc$trt %in% c("C", "W"), "noResidue", "Residue")
 mbc$log.mbc <- log10(mbc$mbc)
