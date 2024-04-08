@@ -30,7 +30,7 @@ theme <- theme_bw() +
 ################################################
 #Temperature
 
-temp <- read_excel("~/Desktop/manuscript/data/TM.final.xlsx", sheet = 2)
+temp <- read_excel("~/Desktop/MSProject/MS_Paper/data/TM.final.xlsx", sheet = 2)
 temp <- temp %>%
   pivot_longer(c(C, W, R, WR),
                names_to = "trt",
@@ -57,7 +57,7 @@ temp <- temp %>%
 ####################################################
 #  Soil Moisture
 
-moist<- read_excel("~/Desktop/manuscript/data/TM.final.xlsx", sheet = 3)
+moist<- read_excel("~/Desktop/MSProject/MS_Paper/data/TM.final.xlsx", sheet = 3)
 moist <- moist %>%
   pivot_longer(c(C, W, R, WR),
                names_to = "trt",
@@ -178,7 +178,7 @@ weekly.TM$week <- as.POSIXct(weekly.TM$week)
 
 #######################################################
 # precipitation
-precipitation <- read_excel("~/Desktop/manuscript/data/weather.data.xlsx")
+precipitation <- read_excel("~/Desktop/MSProject/MS_Paper/data/weather.data.xlsx")
 weekly.rain <- precipitation %>%
   group_by(week = cut(date.time, "week", start.on.monday = FALSE)) %>%
   summarise(rain = sum(precipitation))
@@ -204,22 +204,25 @@ weekly.rain$week <- as.POSIXct(weekly.rain$week)
 
 ################################################################
 
-# temperature model
+# summarizing by month
 monthly.avg.TM <- daily.TM %>% 
   group_by(wp, plot, warming, residue, irrigation, month) %>% 
   summarize(moisture = mean(mean.moist),
             temp = mean(mean.temp),
             mean.dtr = mean(dtr))
 
+# removing Oct tmeperature to include only peak season data
+monthly.avg.TM <- monthly.avg.TM %>%
+  filter(month != "Oct")
 
-# best temperature model
+# temperature model
 
 temp_model <- lmer(temp ~ warming * residue * irrigation +
                            (1|wp) + (1|month),
                          data = monthly.avg.TM)
 
 
-Anova(temp_model, type = 3)
+Anova(temp_model)
 summary(temp_model)
 plot(temp_model)
 qqnorm(residuals(temp_model))
@@ -268,11 +271,24 @@ dtr_model <- lmer(mean.dtr ~ warming * residue * irrigation + (1|wp) +
                     (1|month),
                   data = monthly.avg.TM)
 
-Anova(dtr_model, type = 3)
+Anova(dtr_model)
 summary(dtr_model)
 plot(dtr_model)
 qqnorm(residuals(dtr_model))
 hist(residuals(dtr_model))
+r.squaredGLMM(dtr_model)
+
+# 
+
+# pairwise comparison
+# interaction was not significant. we ran pairwise comparison for the
+# significant main effects.
+dtr.res.emm <- emmeans(dtr_model, ~ residue)
+contrast(dtr.res.emm, "consec", simple = "each", combine = TRUE)
+
+dtr.otc.emm <- emmeans(dtr_model, ~ warming)
+contrast(dtr.otc.emm, "consec", simple = "each", combine = TRUE)
+
 
 dtr.plot.avg <- 
   as.data.frame(emmeans(dtr_model,  ~ warming * residue * irrigation))
@@ -297,6 +313,9 @@ dtr.plot.avg <-
     theme +
     theme(axis.title.x = element_blank()))
 
+
+
+
 ##################################################
 # moisture model
 
@@ -304,7 +323,7 @@ moist_model <- lmer(moisture ~ warming * residue * irrigation + (1|wp) +
                       (1|month),
            data = monthly.avg.TM)
 
-Anova(moist_model, type= 3)
+Anova(moist_model)
 summary(moist_model)
 plot(moist_model)
 qqnorm(residuals(moist_model))
@@ -345,7 +364,7 @@ moist.plot.avg <-
 #################################################
 
 # air temperature
-air.temp <- read_excel("~/Desktop/manuscript/data/hobo.final.xlsx")
+air.temp <- read_excel("~/Desktop/MSProject/MS_Paper/data/hobo.final.xlsx")
 
 # removing outliers
 boxplot(air.temp$temperature)
@@ -439,7 +458,7 @@ air_temp_model <- lmer(temp ~ warming * residue * irrigation +
                          (1|wp) + (1|month),
      data = monthly.air.temp)
 
-Anova(air_temp_model, type = 3)
+Anova(air_temp_model)
 summary(air_temp_model)
 plot(air_temp_model)
 qqnorm(residuals(air_temp_model))
