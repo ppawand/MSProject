@@ -6,7 +6,6 @@ library(tidyverse)
 library(lme4)
 library(effects)
 library(ggpubr)
-library(scales)
 library(car)
 library(MuMIn) # to calculate R2
 library(emmeans)
@@ -108,7 +107,6 @@ daily.TM$trt <- factor(daily.TM$trt, levels = c("C", "W", "R", "WR"))
 daily.TM$month <- factor(daily.TM$month, levels = c("Jun", "Jul","Aug", "Sep", "Oct", "Nov"))
 daily.TM$datee <- strptime(daily.TM$datee, format  = "%Y-%m-%d")
 daily.TM$datee <- as.POSIXct(daily.TM$datee)
-str(daily.TM)
 
 
 # averaging temperatures by hours of the day
@@ -116,12 +114,60 @@ str(daily.TM)
 
 hourly.avg.temp <- temp %>% 
   mutate(hours = lubridate::hour(date)) %>% 
-  group_by(trt, irrigation, hours) %>% 
+  group_by(wp, plot, irrigation, trt, month, hours) %>% 
   summarize(temp.avg = mean(temperature))
 
+hourly.avg.temp$warming <-ifelse(hourly.avg.temp$trt %in% c("C", "R"), "Ambient", "OTC")
+hourly.avg.temp$residue <-ifelse(hourly.avg.temp$trt %in% c("C", "W"), "noResidue", "Residue")
 
-(hourly.stemp.plot <- ggplot(hourly.avg.temp, aes(x = hours, y =  temp.avg, color = trt)) +
+
+# separating night and day temperature. For this we use 7 AM - 9 PM (14 hours) 
+# as daylight hours
+day.temp <- hourly.avg.temp %>%
+  filter(hours %in% c(7:21)) %>%
+  filter(month != "Oct")
+
+
+night.temp <- hourly.avg.temp %>%
+  filter(hours %in% !c(7:21)) %>%
+  filter(month != "Oct")
+  
+# fitting models for night and day temperature separately
+day_temp_model <- lmer(temp.avg ~ irrigation*warming*residue + (1|wp) + (1|month) +
+                         (1|plot),
+                       data = day.temp)
+
+Anova(day_temp_model)
+summary(day_temp_model)
+plot(day_temp_model)
+qqnorm(residuals(temp_model))
+hist(residuals(temp_model))
+r.squaredGLMM(temp_model)
+
+
+night_temp_model <- lmer(temp.avg ~ irrigation*warming*residue + (1|wp) + (1|month) +
+                         (1|plot),
+                       data = night.temp)
+Anova(night_temp_model)
+summary(night_temp_model)
+plot(night_temp_model)
+qqnorm(residuals(night_temp_model))
+hist(residuals(night_temp_model))
+
+# plot the hourly temperature
+
+hourly.temp <- hourly.avg.temp %>% 
+  group_by(irrigation, trt, hours) %>% 
+  summarize(avg.temp = mean(temp.avg),
+            sd = sd(temp.avg),
+            n = n(),
+            se = sd/sqrt(n))
+
+(hourly.stemp.plot <- ggplot(hourly.temp, aes(x = hours, y =  avg.temp, color = trt)) +
   geom_line(linewidth = 1) +
+  #geom_vline(xintercept = c(7, 21), lty = "dotted", color = "red") +
+  geom_errorbar(aes(ymin = avg.temp - se,
+                    ymax = avg.temp + se)) +
   facet_wrap(~irrigation) +
   scale_x_continuous(breaks = seq(0, 23, 2),
                      labels = c("12 AM", "2 AM", "4 AM", "6 AM", " 8 AM",
@@ -133,7 +179,6 @@ hourly.avg.temp <- temp %>%
   theme +
   theme(axis.text.x=element_text(angle=90,hjust=1)))
   
-
 
 
 ###########################################################
@@ -172,10 +217,8 @@ weekly.TM$week <- as.POSIXct(weekly.TM$week)
                        labels = c("C", "OTC", "R", "OTC + R")) +
     xlab( "Months") +
     ylab(expression("Daily temperature range ("*~degree*C*")")) + 
-    facet_wrap(~ irrigation) + theme +
-    theme(strip.background = element_blank(),
-          strip.text = element_blank()))
-
+    facet_wrap(~ irrigation) + theme)
+  
 #######################################################
 # precipitation
 precipitation <- read_excel("~/Desktop/MSProject/MS_Paper/data/weather.data.xlsx")
@@ -211,14 +254,14 @@ monthly.avg.TM <- daily.TM %>%
             temp = mean(mean.temp),
             mean.dtr = mean(dtr))
 
-# removing Oct tmeperature to include only peak season data
+# removing Oct temperature to include only peak season data for analysis
 monthly.avg.TM <- monthly.avg.TM %>%
   filter(month != "Oct")
 
 # temperature model
 
 temp_model <- lmer(temp ~ warming * residue * irrigation +
-                           (1|wp) + (1|month),
+                           (1|wp) + (1|month) + (1|plot),
                          data = monthly.avg.TM)
 
 
@@ -268,7 +311,7 @@ temp.plot.avg <-
 # daily temperature range model
 
 dtr_model <- lmer(mean.dtr ~ warming * residue * irrigation + (1|wp) + 
-                    (1|month),
+                    (1|month) + (1|plot),
                   data = monthly.avg.TM)
 
 Anova(dtr_model)
@@ -320,8 +363,8 @@ dtr.plot.avg <-
 # moisture model
 
 moist_model <- lmer(moisture ~ warming * residue * irrigation + (1|wp) + 
-                      (1|month),
-           data = monthly.avg.TM)
+                      (1|month) + (1|plot),
+                    data = monthly.avg.TM)
 
 Anova(moist_model)
 summary(moist_model)
@@ -406,11 +449,16 @@ air.temp.average$datee <- as.POSIXct(air.temp.average$datee)
 hourly.avg.airtemp <- air.temp %>% 
   mutate(hours = lubridate::hour(date)) %>% 
   group_by(warming, hours) %>% 
-  summarize(temp.avg = mean(temperature))
+  summarize(temp.avg = mean(temperature),
+            sd = sd(temperature),
+            n = n(),
+            se = sd/sqrt(n))
 
 
  (hourly.atemp.plot <- ggplot(hourly.avg.airtemp, aes(x = hours, y =  temp.avg, color = warming)) +
   geom_line(linewidth = 1) +
+  geom_errorbar(aes(ymin = temp.avg - se,
+                    ymax = temp.avg + se)) +
   scale_x_continuous(breaks = seq(0, 23, 2),
                      labels = c("12 AM", "2 AM", "4 AM", "6 AM", " 8 AM",
                                 "10 AM", "12 PM", "2 PM", "4 PM", "6 PM",
@@ -451,7 +499,8 @@ weekly.air.temperature$week <- as.POSIXct(weekly.air.temperature$week)
 monthly.air.temp <- air.temp.average %>% 
   group_by(wp, warming, residue, irrigation, month) %>% 
   summarize(temp = mean(mean.temp),
-            light = (mean(mean.light)))
+            light = (mean(mean.light))) %>%
+  filter(month != "Oct")
 
 
 air_temp_model <- lmer(temp ~ warming * residue * irrigation +
@@ -466,9 +515,8 @@ hist(residuals(air_temp_model))
 r.squaredGLMM(air_temp_model)
 
 # pairwise comparison
-air.temp.emm <-emmeans(air_temp_model,  ~ warming)
+air.temp.emm <-emmeans(air_temp_model,  ~ irrigation)
 contrast(air.temp.emm,"consec", simple = "each", combine = TRUE)
-
 
 
 
@@ -510,11 +558,15 @@ airtemp.plot.avg <-
 # Plots
 
 # figure 1
-ggarrange(hourly.stemp.plot + rremove ("xlab"), 
-          hourly.atemp.plot,
+
+ggarrange(fig1 + rremove("xlab") + rremove("x.text"), 
+          fig6 + rremove("xlab"),
           nrow = 2,
-          common.legend = F, 
-          labels = "auto")
+          common.legend = T,
+          labels = "auto",
+          vjust = 0.5)
+
+
 # figure 2
 dtr.graph
 
@@ -525,17 +577,19 @@ ggarrange(fig2 + rremove("xlab"),
           common.legend = F,
           labels = "auto")
 
-
 # supplemental figure S1
-ggarrange(fig1 + rremove("xlab") + rremove("x.text"), 
-          fig6 + rremove("xlab") + rremove("x.text"), 
-          dt + rremove("xlab") ,
-          nrow = 3,
-          common.legend = T,
-          labels = "auto",
-          vjust = 0.5)
 
-# supplemental figure S1
+
+ggarrange(hourly.stemp.plot + rremove ("xlab"), 
+          hourly.atemp.plot,
+          nrow = 2,
+          common.legend = F, 
+          labels = "auto")
+
+# Supplemental figure S2
+dt
+
+# supplemental figure S3
 ggarrange(fig3 + rremove("xlab") + rremove("x.text"),
           fig7 + rremove("xlab"),
           nrow = 2,

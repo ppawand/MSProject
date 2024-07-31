@@ -148,6 +148,7 @@ pred_c <- effect(mod = om_model1, term = "temp") %>% as.data.frame()
 OM.average <- as.data.frame(emmeans(om_model, ~warming * residue * irrigation))
 
 (om_graph <- ggplot(om.plot, aes(x = warming, color = residue))+
+    geom_boxplot(aes(y = OM), alpha = 0.5) +
     geom_point(aes(y = OM, color  = residue), alpha = 0.5, size = 2,
                position = position_jitterdodge(dodge.width = 0.75, jitter.width = 0.3)) +
     geom_point(data = OM.average,
@@ -256,6 +257,7 @@ mbc.average$ucl <- exp(mbc.average$asymp.UCL)
 mbc.average$lcl <- exp(mbc.average$asymp.LCL)
 
 (mbc_graph <- ggplot(mbc.plot, aes(x = warming, color = residue)) +
+    geom_boxplot(aes(y = mbc), alpha = 0.5) +
     geom_point(aes(y = mbc, color  = residue), alpha = 0.5, size = 2,
                position = position_jitterdodge(dodge.width = 0.75, jitter.width = 0.3)) +
     geom_point(data = mbc.average,
@@ -426,6 +428,7 @@ resp.average$ucl <- 1/(resp.average$asymp.UCL)
 resp.average$lcl <- 1/(resp.average$asymp.LCL)
 
 (flux_graph <- ggplot(respiration, aes(x = warming, color = residue)) +
+    geom_boxplot(aes(y = flux), alpha = 0.5) +
     geom_point(aes(y = flux, color  = residue), alpha = 0.5, size = 2,
                position = position_jitterdodge(dodge.width = 0.75, jitter.width = 0.3)) +
     geom_point(data = resp.average,
@@ -444,7 +447,6 @@ resp.average$lcl <- 1/(resp.average$asymp.LCL)
     theme +
     theme(strip.background = element_blank(),
           strip.text = element_blank()))
-
 
 
 ####################################################
