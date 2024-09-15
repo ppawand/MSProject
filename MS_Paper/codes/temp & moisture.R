@@ -291,20 +291,22 @@ temp.plot.avg <-
 
 
 (fig3 <- ggplot(monthly.avg.TM, aes(x = warming, color = residue))  +
-    geom_boxplot(aes(y = temp, color  = residue), alpha = 0.5) +
-    geom_point(aes(y = temp, color  = residue), alpha = 0.5,
+    geom_boxplot(aes(y = temp, color  = residue, fill = residue), alpha = 0.01, color = "gray") +
+    geom_point(aes(y = temp, color  = residue), alpha = 0.2,
                position = position_jitterdodge(dodge.width = 0.75, jitter.width = 0.3)) +
     geom_point(data = temp.plot.avg, 
              aes(x = warming, y = emmean, group = residue),
              size = 5, shape = 15,
              position = position_dodge(width = 0.75)) +
     geom_errorbar(data = temp.plot.avg,
-                aes(x = warming, ymin = lower.CL, 
-                    ymax = upper.CL, group = residue), width = 0.2,
+                aes(x = warming, ymin = emmean - SE, 
+                    ymax = emmean + SE, group = residue), width = 0.2,
                 stat = "identity", linewidth = 1,
                 position = position_dodge(width = 0.75)) +
     scale_color_manual(labels = c("No residue", "Residue"),
                      values = c("#000000", "#009E73")) +
+    scale_fill_manual(labels = c("No residue", "Residue"),
+                       values = c("#000000", "#009E73")) +
     facet_grid( ~ irrigation) +
     labs(x="Treatments", y = expression("Soil temperature ("*~degree*C*")")) +
     theme)
@@ -386,24 +388,27 @@ dtr.plot.avg <-
   as.data.frame(emmeans(dtr_model,  ~ warming * residue * irrigation))
 
 (dtr.graph <- ggplot(monthly.avg.TM, aes(x = warming, color = residue))  +
-    geom_boxplot(aes(y = mean.dtr, color  = residue), alpha = 0.5) +
-    geom_point(aes(y = mean.dtr, color  = residue), alpha = 0.5,
+    geom_boxplot(aes(y = mean.dtr, color  = residue, fill = residue ), alpha = 0.01, color = "gray") +
+    geom_point(aes(y = mean.dtr, color  = residue), alpha = 0.2,
                position = position_jitterdodge(dodge.width = 0.75, jitter.width = 0.3)) +
     geom_point(data = dtr.plot.avg, 
                aes(x = warming, y = emmean, group = residue),
                size = 5, shape = 15,
                position = position_dodge(width = 0.75)) +
     geom_errorbar(data = dtr.plot.avg,
-                  aes(x = warming, ymin = lower.CL, 
-                      ymax = upper.CL, group = residue), width = 0.2,
+                  aes(x = warming, ymin = emmean - SE, 
+                      ymax = emmean + SE, group = residue), width = 0.2,
                   stat = "identity", linewidth = 1,
                   position = position_dodge(width = 0.75)) +
     scale_color_manual(labels = c("No residue", "Residue"),
                        values = c("#000000", "#009E73")) +
+    scale_fill_manual(labels = c("No residue", "Residue"),
+                       values = c("#000000", "#009E73")) +
     labs(x="Treatments", y = expression("Daily temperature range ("*~degree*C*")")) +
     facet_grid( ~ irrigation) +
     theme +
-    theme(axis.title.x = element_blank()))
+    theme(strip.background = element_blank(),
+          strip.text = element_blank()))
 
 # dtr by residue plot
 
@@ -628,19 +633,21 @@ airtemp.plot.avg <-
   as.data.frame(emmeans(air_temp_model,  ~ warming * residue * irrigation))
 
 (fig7 <- ggplot(monthly.air.temp, aes(x = warming, color = residue))  +
-    geom_boxplot(aes(y = temp, color  = residue), alpha = 0.5) +
-    geom_point(aes(y = temp, color  = residue), alpha = 0.5,
+    geom_boxplot(aes(y = temp, color  = residue, fill = residue), alpha = 0.01, color ="gray") +
+    geom_point(aes(y = temp, color  = residue), alpha = 0.2,
                position = position_jitterdodge(dodge.width = 0.75, jitter.width = 0.3)) +
     geom_point(data = airtemp.plot.avg, 
                aes(x = warming, y = emmean, group = residue),
                size = 5, shape = 15,
                position = position_dodge(width = 0.75)) +
     geom_errorbar(data = airtemp.plot.avg,
-                  aes(x = warming, ymin = lower.CL, 
-                      ymax = upper.CL, group = residue), width = 0.1,
+                  aes(x = warming, ymin = emmean - SE, 
+                      ymax = emmean + SE, group = residue), width = 0.1,
                   stat = "identity", linewidth = 0.8,
                   position = position_dodge(width = 0.75)) +
     scale_color_manual(labels = c("No Residue", "Residue"),
+                       values = c("#000000", "#009E73")) +
+    scale_fill_manual(labels = c("No residue", "Residue"),
                        values = c("#000000", "#009E73")) +
     labs(x="Treatments", y = expression("Air temperature ("*~degree*C*")")) +
     facet_grid( ~ irrigation) +
@@ -682,28 +689,6 @@ air.temp.otc.irr <- as.data.frame(emmeans(air_temp_model, ~ warming * irrigation
 
 
 
-# Plots
-
-# figure 1
-
-ggarrange(fig1 + rremove("xlab") + rremove("x.text"), 
-          fig6 + rremove("xlab"),
-          nrow = 2,
-          common.legend = T,
-          labels = "auto",
-          vjust = 0.5)
-
-
-# figure 2
-dtr.graph
-
-# figure 3
-ggarrange(fig2 + rremove("xlab"), 
-          moist.graph + rremove("xlab"),
-          nrow = 2,
-          common.legend = F,
-          labels = "auto")
-
 # supplemental figure S1
 
 
@@ -713,15 +698,14 @@ ggarrange(hourly.stemp.plot + rremove ("xlab"),
           common.legend = F, 
           labels = "auto")
 
-# Supplemental figure S2
-dt
-
-# supplemental figure S3
+# supplemental figure S2
 ggarrange(fig3 + rremove("xlab") + rremove("x.text"),
+          dtr.graph + rremove("x.text") + rremove("xlab"),
           fig7 + rremove("xlab"),
-          nrow = 2,
+          ncol = 1,
           common.legend = T,
-          labels = "auto")
+          labels = "auto",
+          align = "v")
 
 
 

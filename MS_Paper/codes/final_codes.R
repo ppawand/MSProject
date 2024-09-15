@@ -149,21 +149,23 @@ pred_c <- effect(mod = om_model1, term = "temp") %>% as.data.frame()
 OM.average <- as.data.frame(emmeans(om_model, ~warming * residue * irrigation))
 
 (om_graph <- ggplot(om.plot, aes(x = warming, color = residue))+
-    geom_boxplot(aes(y = OM), alpha = 0.5) +
-    geom_point(aes(y = OM, color  = residue), alpha = 0.5, size = 2,
+    geom_boxplot(aes(y = OM, fill = residue), alpha = 0.01, color = "gray") +
+    geom_point(aes(y = OM, color  = residue), alpha = 0.2, size = 2,
                position = position_jitterdodge(dodge.width = 0.75, jitter.width = 0.3)) +
     geom_point(data = OM.average,
                aes(x = warming, y = emmean, group = residue),
                size = 5, shape = 15,
                position = position_dodge(width = 0.75)) +
     geom_errorbar(data = OM.average,
-                  aes(x = warming, ymin = lower.CL,
-                      ymax = upper.CL,group = residue), width = 0.2,
+                  aes(x = warming, ymin = emmean - SE,
+                      ymax = emmean + SE, group = residue), width = 0.2,
                   position = position_dodge(width = 0.75)) +
   labs(x="Treatments", y = "Soil Organic Matter (%)") +
   facet_wrap(~irrigation) +
   scale_color_manual(labels = c("No Residue", "Residue"),
                      values = c("#000000", "#009E73")) +
+  scale_fill_manual(labels = c("No Residue", "Residue"),
+                       values = c("#000000", "#009E73")) +
   theme)
 
 
@@ -273,27 +275,26 @@ r.squaredGLMM(mbc_numeric)
 # mbc by trt
 
 mbc.average <- 
-  as.data.frame(emmeans(mbc_model1 , ~warming * residue * irrigation))
-mbc.average$avg <- exp(mbc.average$emmean)
-mbc.average$ucl <- exp(mbc.average$asymp.UCL)
-mbc.average$lcl <- exp(mbc.average$asymp.LCL)
+  as.data.frame(emmeans(mbc_model1 , ~warming * residue * irrigation, type = "response"))
 
 (mbc_graph <- ggplot(mbc.plot, aes(x = warming, color = residue)) +
-    geom_boxplot(aes(y = mbc), alpha = 0.5) +
-    geom_point(aes(y = mbc, color  = residue), alpha = 0.5, size = 2,
+    geom_boxplot(aes(y = mbc, fill = residue), alpha = 0.01, color = "gray") +
+    geom_point(aes(y = mbc, color  = residue), alpha = 0.2, size = 2,
                position = position_jitterdodge(dodge.width = 0.75, jitter.width = 0.3)) +
     geom_point(data = mbc.average,
-               aes(x = warming, y = avg, group = residue),
+               aes(x = warming, y = response, group = residue),
                size = 5, shape = 15,
                position = position_dodge(width = 0.75)) +
     geom_errorbar(data = mbc.average, 
-                aes(x = warming, ymin = lcl,
-                    ymax = ucl, group = residue), width = 0.2,
+                aes(x = warming, ymin = response- SE,
+                    ymax = response + SE, group = residue), width = 0.2,
                 position = position_dodge(width = 0.75)) +
     facet_wrap(~ irrigation) + 
     labs(x="Treatments", y = ("Microbial Biomass Carbon (mg/kg)" )) +
     scale_color_manual(labels = c("No Residue", "Residue"),
                      values = c("#000000", "#009E73")) +
+    scale_fill_manual(labels = c("No Residue", "Residue"),
+                       values = c("#000000", "#009E73")) +
     theme +
     theme(strip.background = element_blank(),
           strip.text = element_blank()))
@@ -490,27 +491,25 @@ r.squaredGLMM(m_gresp2)
 ###############################################
 # respiration by trt
 resp.average <- 
-  as.data.frame(emmeans(gresp_model2, ~warming * residue * irrigation)) 
-
-resp.average$avg <- 1/(resp.average$emmean)
-resp.average$ucl <- 1/(resp.average$asymp.UCL)
-resp.average$lcl <- 1/(resp.average$asymp.LCL)
+  as.data.frame(emmeans(gresp_model2, ~warming * residue * irrigation, type = "response")) 
 
 (flux_graph <- ggplot(respiration, aes(x = warming, color = residue)) +
-    geom_boxplot(aes(y = flux), alpha = 0.5) +
-    geom_point(aes(y = flux, color  = residue), alpha = 0.5, size = 2,
+    geom_boxplot(aes(y = flux, fill = residue), alpha = 0.01, color = "gray") +
+    geom_point(aes(y = flux, color  = residue), alpha = 0.2, size = 2,
                position = position_jitterdodge(dodge.width = 0.75, jitter.width = 0.3)) +
     geom_point(data = resp.average,
-               aes(x = warming, y = avg, group = residue),
+               aes(x = warming, y = response, group = residue),
                size = 5, shape = 15,
                position = position_dodge(width = 0.75)) +
     geom_errorbar(data = resp.average, 
-                  aes(x = warming, ymin = lcl,
-                      ymax = ucl, group = residue), width = 0.2,
+                  aes(x = warming, ymin = response - SE,
+                      ymax = response + SE, group = residue), width = 0.2,
                   position = position_dodge(width = 0.75)) +
     facet_wrap(~ irrigation) + 
     labs(x="Treatments", y = expression("Soil respiration ("*mu~"mol" ~CO[2]~ m^-2~s^-1*")")) +
     scale_color_manual(labels = c("No Residue", "Residue"),
+                       values = c("#000000", "#009E73")) +
+    scale_fill_manual(labels = c("No Residue", "Residue"),
                        values = c("#000000", "#009E73")) +
     scale_y_continuous(limits = c(0, 15)) +
     theme +
@@ -647,15 +646,15 @@ hist(residuals(aboveground_model1))
 agb <- as.data.frame(emmeans(aboveground_model, ~warming * residue * irrigation))
 
 (agb_graph <- ggplot(yield_data, aes(x = warming, color = residue)) +
-    geom_point(aes(y = above.ground.biomass, color  = residue), alpha = 0.5, size = 2,
-               position = position_jitterdodge(dodge.width = 0.75, jitter.width = 0.3)) +
+    geom_point(aes(y = above.ground.biomass), alpha = 0.2, size = 2,
+               position = position_jitterdodge(dodge.width = 0.75, jitter.width = 0.1)) +
     geom_point(data = agb,
                aes(x = warming, y = emmean, group = residue),
                size = 5, shape = 15,
                position = position_dodge(width = 0.75)) +
     geom_errorbar(data = agb,
-                  aes(x = warming, ymin = lower.CL,
-                      ymax = upper.CL, group = residue), width = 0.2,
+                  aes(x = warming, ymin = emmean- SE,
+                      ymax = emmean + SE, group = residue), width = 0.2,
                   position = position_dodge(width =0.75)) +
     facet_wrap(~ irrigation) + 
     labs(x="Treatments", y = ("Aboveground biomass (Kg/ha)"))+
@@ -740,15 +739,15 @@ seed.cotton <-
   as.data.frame(emmeans(yield_model, ~warming * residue * irrigation))
 
 (yield_graph <- ggplot(yield_data, aes(x = warming, color = residue)) +
-    geom_point(aes(y = seed.cotton, color  = residue), alpha = 0.5, size = 2,
-               position = position_jitterdodge(dodge.width = 0.75, jitter.width = 0.3)) +
+    geom_point(aes(y = seed.cotton, color  = residue), alpha = 0.2, size = 2,
+               position = position_jitterdodge(dodge.width = 0.75, jitter.width = 0.1)) +
     geom_point(data = seed.cotton,
                aes(x = warming, y = emmean, group = residue),
                size = 5, shape = 15, 
                position = position_dodge(width = 0.75)) +
     geom_errorbar(data = seed.cotton,
-                  aes(x = warming, ymin = lower.CL,
-                      ymax = upper.CL, group = residue), width = 0.2,
+                  aes(x = warming, ymin = emmean - SE,
+                      ymax = emmean + SE, group = residue), width = 0.2,
                   position = position_dodge(width = 0.75)) +
     facet_wrap(~ irrigation) + 
     labs(x="Treatments", y = ("Seed cotton yield (kg/ha)")) +
@@ -834,15 +833,15 @@ hist(residuals(bgb_model1))
 bgb <- as.data.frame(emmeans(bgb_model, ~warming * residue * irrigation))
 
 (bgb_graph <- ggplot(yield_data, aes(x = warming, color = residue)) +
-    geom_point(aes(y = rootbiomass, color  = residue), alpha = 0.5, size = 2,
-               position = position_jitterdodge(dodge.width = 0.75, jitter.width = 0.3)) +
+    geom_point(aes(y = rootbiomass, color  = residue), alpha = 0.2, size = 2,
+               position = position_jitterdodge(dodge.width = 0.75, jitter.width = 0.1)) +
     geom_point(data = bgb,
                aes(x = warming, y = emmean, group = residue),
                size = 5, shape = 15,
                position = position_dodge(width = 0.75)) +
     geom_errorbar(data = bgb,
-                  aes(x = warming, ymin = lower.CL,
-                      ymax = upper.CL, group = residue), width = 0.2,
+                  aes(x = warming, ymin = emmean - SE,
+                      ymax = emmean + SE, group = residue), width = 0.2,
                   position = position_dodge(width = 0.75)) +
     facet_wrap(~ irrigation) + 
     labs(x="Treatments", y = ("Belowground Biomass (g)"))+
@@ -903,7 +902,7 @@ ggarrange(agb_irr_graph + rremove("xlab"),
 #######################################################
 # plots
 
-# figure 4
+# Supplemental Figure S3
 
 ggarrange(om_graph + rremove("xlab") + rremove("x.text") ,
           mbc_graph + rremove("xlab") + rremove("x.text"),
@@ -914,7 +913,7 @@ ggarrange(om_graph + rremove("xlab") + rremove("x.text") ,
           labels = "auto",
           vjust = 0.3)
 
-# figure 5
+# figure 6
 ggarrange(om_temp_graph,
           mbc_om_graph,
           mbc_nitrate_graph,
@@ -923,7 +922,7 @@ ggarrange(om_temp_graph,
           labels = "auto",
           vjust = 0.3)
 
-# figure 6
+# Supplemental Figure S4
 
 ggarrange(agb_graph + rremove("xlab") + rremove("x.text") ,
           bgb_graph + rremove("xlab") + rremove("x.text"),
