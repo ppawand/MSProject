@@ -173,7 +173,7 @@ hourly.temp <- hourly.avg.temp %>%
                      labels = c("12 AM", "2 AM", "4 AM", "6 AM", " 8 AM",
                                 "10 AM", "12 PM", "2 PM", "4 PM", "6 PM",
                                 "8 PM", "10 PM")) +
-  labs(x = "Time of the day", y = expression("Soil Temperature ("*~degree*C*")")) +
+  labs(x = "Time of the day", y = expression("Soil temperature ("*~degree*C*")")) +
   scale_color_manual(values = c("#131E3A", "#0018F9","#980019", "#4C0099"),
                      labels = c("C", "R", "OTC", "OTC + R")) +
   theme +
@@ -204,7 +204,7 @@ weekly.TM$week <- as.POSIXct(weekly.TM$week)
    scale_color_manual(values = c("#131E3A", "#980019", "#0018F9", "#4C0099"),
                       labels = c("C", "OTC", "R", "OTC + R")) +
   xlab( "Months") +
-  ylab(expression("Soil Temperature ("*~degree*C*")")) + 
+  ylab(expression("Soil temperature ("*~degree*C*")")) + 
   facet_wrap(~irrigation) + 
    scale_y_continuous(limits = c(15, 35)) +
    theme)
@@ -289,6 +289,7 @@ contrast(temp.irr.emm, "consec", simple = "each", combine = TRUE)
 temp.plot.avg <- 
   as.data.frame(emmeans(temp_model,  ~ warming * residue * irrigation))
 
+
 (fig3 <- ggplot(monthly.avg.TM, aes(x = warming, color = residue))  +
     geom_boxplot(aes(y = temp, color  = residue), alpha = 0.5) +
     geom_point(aes(y = temp, color  = residue), alpha = 0.5,
@@ -302,11 +303,59 @@ temp.plot.avg <-
                     ymax = upper.CL, group = residue), width = 0.2,
                 stat = "identity", linewidth = 1,
                 position = position_dodge(width = 0.75)) +
-    scale_color_manual(labels = c("No Residue", "Residue"),
+    scale_color_manual(labels = c("No residue", "Residue"),
                      values = c("#000000", "#009E73")) +
     facet_grid( ~ irrigation) +
-    labs(x="Treatments", y = expression("Soil Temperature ("*~degree*C*")")) +
+    labs(x="Treatments", y = expression("Soil temperature ("*~degree*C*")")) +
     theme)
+
+# temp by residue plot
+
+temp.residue <- as.data.frame(emmeans(temp_model,  ~ residue))
+
+(temp_residue_plot <- ggplot(monthly.avg.TM, aes(x = residue))  +
+  geom_boxplot(aes(y = temp), color = "gray") +
+  geom_point(aes(y = temp), alpha = 0.2,
+             position = position_jitter(width = 0.1)) +
+  geom_point(data = temp.residue, 
+             aes(x = residue, y = emmean),
+             size = 5, shape = 15) +
+  geom_errorbar(data = temp.residue,
+                aes(x = residue, ymin = emmean - SE, 
+                    ymax = emmean + SE), width = 0.1,
+                stat = "identity", linewidth = 1,
+                position = position_dodge(width = 0.75)) +
+  labs(x="Treatments", y = expression("Soil temperature ("*~degree*C*")")) +
+    scale_x_discrete(labels = c("No residue", "Residue")) +
+    annotate(geom="text", x= 2.1, y= 30,
+             label="Residue: P < 0.001", size = 4.5) +
+  theme)
+
+# temp by irrigation plot
+
+temp.irrigation <- as.data.frame(emmeans(temp_model,  ~ irrigation))
+
+(temp_irrigation_plot <- ggplot(monthly.avg.TM, aes(x = irrigation))  +
+    geom_boxplot(aes(y = temp), color = "gray") +
+    geom_point(aes(y = temp), alpha = 0.2,
+               position = position_jitter(width = 0.1)) +
+    geom_point(data = temp.irrigation, 
+               aes(x = irrigation, y = emmean),
+               size = 5, shape = 15) +
+    geom_errorbar(data = temp.irrigation,
+                  aes(x = irrigation, ymin = emmean - SE, 
+                      ymax = emmean + SE), width = 0.1,
+                  stat = "identity", linewidth = 1,
+                  position = position_dodge(width = 0.75)) +
+    labs(x="Treatments", y = expression("Soil temperature ("*~degree*C*")")) +
+    annotate(geom="text", x= 2.1, y= 30,
+             label="Irrigation: P < 0.001", size = 4.5) +
+    theme)
+
+ggarrange(temp_residue_plot + rremove("xlab"), 
+          temp_irrigation_plot + rremove("ylab") + rremove("xlab"))
+
+
 ##################################################
 # daily temperature range model
 
@@ -349,15 +398,66 @@ dtr.plot.avg <-
                       ymax = upper.CL, group = residue), width = 0.2,
                   stat = "identity", linewidth = 1,
                   position = position_dodge(width = 0.75)) +
-    scale_color_manual(labels = c("No Residue", "Residue"),
+    scale_color_manual(labels = c("No residue", "Residue"),
                        values = c("#000000", "#009E73")) +
     labs(x="Treatments", y = expression("Daily temperature range ("*~degree*C*")")) +
     facet_grid( ~ irrigation) +
     theme +
     theme(axis.title.x = element_blank()))
 
+# dtr by residue plot
+
+dtr.residue <- as.data.frame(emmeans(dtr_model, ~ residue))
+
+(dtr_residue_plot <- ggplot(monthly.avg.TM, aes(x = residue))  +
+    geom_boxplot(aes(y = mean.dtr), color = "gray") +
+    geom_point(aes(y = mean.dtr), alpha = 0.2,
+               position = position_jitter(width = 0.1)) +
+    geom_point(data = dtr.residue, 
+               aes(x = residue, y = emmean),
+               size = 5, shape = 15) +
+    geom_errorbar(data = dtr.residue,
+                  aes(x = residue, ymin = emmean - SE, 
+                      ymax = emmean + SE), width = 0.1,
+                  stat = "identity", linewidth = 1,
+                  position = position_dodge(width = 0.75)) +
+    labs(x="Treatments", y = expression("Daily temperature range ("*~degree*C*")")) +
+    scale_x_discrete(labels = c("No residue", "Residue")) +
+    annotate(geom="text", x= 2.1, y= 10,
+             label="Residue: P < 0.001", size = 4.5) +
+    theme)
+
+# temp by OTC plot
+
+dtr.otc <- as.data.frame(emmeans(dtr_model,  ~ warming))
+confint(emmeans(dtr_model,  ~ warming))
+
+ (dtr_otc_plot <- ggplot(monthly.avg.TM, aes(x = warming))  +
+    geom_boxplot(aes(y = mean.dtr), color = "gray") +
+    geom_point(aes(y = mean.dtr), alpha = 0.2,
+               position = position_jitter(width = 0.1)) +
+    geom_point(data = dtr.otc, 
+               aes(x = warming, y = emmean),
+               size = 5, shape = 15) +
+    geom_errorbar(data = dtr.otc,
+                  aes(x = warming, ymin = emmean - SE, 
+                      ymax = emmean + SE), width = 0.2,
+                  stat = "identity", linewidth = 1,
+                  position = position_dodge(width = 0.75)) +
+    labs(x="Treatments", y = expression("Daily temperature range ("*~degree*C*")")) +
+    annotate(geom="text", x= 2.1, y= 10,
+             label="OTC: P = 0.007", size = 4.5) +
+    theme)
 
 
+ggarrange(temp_residue_plot + rremove("xlab"), 
+          temp_irrigation_plot + rremove("ylab") + rremove("xlab"),
+          dtr_residue_plot + rremove("xlab"),
+          dtr_otc_plot + rremove("xlab") + rremove("ylab"),
+          labels = "auto",
+          align = "v")
+
+# export to 8 * 10
 
 ##################################################
 # moisture model
@@ -384,24 +484,25 @@ moist.plot.avg <-
   as.data.frame(emmeans(moist_model,  ~ warming * residue * irrigation))
 
 (moist.graph <- ggplot(monthly.avg.TM, aes(x = warming, color = residue))  +
-    geom_boxplot(aes(y = moisture, color  = residue), alpha = 0.5) +
-    geom_point(aes(y = moisture, color  = residue), alpha = 0.5,
+    geom_boxplot(aes(y = moisture, fill = residue), alpha = 0.01, color = "gray") +
+    geom_point(aes(y = moisture), alpha = 0.2,
                position = position_jitterdodge(dodge.width = 0.75, jitter.width = 0.3)) +
     geom_point(data = moist.plot.avg, 
                aes(x = warming, y = emmean, group = residue),
                size = 5, shape = 15,
                position = position_dodge(width = 0.75)) +
     geom_errorbar(data = moist.plot.avg,
-                  aes(x = warming, ymin = lower.CL, 
-                      ymax = upper.CL, group = residue), width = 0.2,
+                  aes(x = warming, ymin = emmean - SE, 
+                      ymax = emmean + SE, group = residue), width = 0.2,
                   stat = "identity", linewidth = 1,
                   position = position_dodge(width = 0.75)) +
     scale_color_manual(labels = c("No Residue", "Residue"),
                        values = c("#000000", "#009E73")) +
+    scale_fill_manual(labels = c("No Residue", "Residue"),
+                       values = c("#000000", "#009E73")) +
     labs(x="Treatments", y = expression("VWC ("*m^3/m^3*")")) +
     facet_grid( ~ irrigation) +
     theme)
-
 
 
 #################################################
@@ -546,6 +647,32 @@ airtemp.plot.avg <-
     theme +
     theme(strip.background = element_blank(),
           strip.text = element_blank()))
+
+# OTC irrigation interaction plot for air temperature
+
+air.temp.otc.irr <- as.data.frame(emmeans(air_temp_model, ~ warming * irrigation))
+
+(air_temp_otc_plot <- ggplot(monthly.air.temp, aes(x = warming, color = irrigation))  +
+    geom_boxplot(aes(y = temp, color  = irrigation, fill = irrigation), color = "gray", alpha = 0.001) +
+    geom_point(aes(y = temp, color  = irrigation), alpha = 0.2,
+               position = position_jitterdodge(dodge.width = 0.75, jitter.width = 0.1)) +
+    geom_point(data = air.temp.otc.irr, 
+               aes(x = warming, y = emmean, group = irrigation),
+               size = 5, shape = 15,
+               position = position_dodge(width = 0.75)) +
+    geom_errorbar(data = air.temp.otc.irr,
+                  aes(x = warming, ymin = emmean - SE, 
+                      ymax = emmean + SE, group = irrigation),
+                  linewidth = 1, width = 0.1,
+                  stat = "identity",
+                  position = position_dodge(width = 0.75)) +
+    scale_color_manual(values = c("brown4", "navyblue")) +
+    labs(x="Treatments", y = expression("Air temperature ("*~degree*C*")")) +
+    annotate(geom="text", x= 0.5, y= 33,
+             label="OTC: P < 0.001 \nIrrigation: P < 0.001 \nOTC x Irrigation: P < 0.001",
+             size = 4.5, hjust = 0) +
+    theme)
+
 
 
 ####################################################

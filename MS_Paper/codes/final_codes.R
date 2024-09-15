@@ -99,12 +99,12 @@ Anova(om_model)
 plot(om_model)
 qqnorm(residuals(om_model))
 hist(residuals(om_model))
+r.squaredGLMM(om_model)
 
 # pairwise comparison
 # interaction was not significant. we ran pairwise comparison for the
 # significant main effects.
 om.emm <- emmeans(om_model, ~ irrigation)
-cld(om.emm)
 contrast(om.emm, "consec", simple = "each", combine = TRUE)
 
 
@@ -115,6 +115,7 @@ Anova(om_model1)
 plot(om_model1)
 qqnorm(residuals(om_model1))
 hist(residuals(om_model1))
+r.squaredGLMM(om_model1)
 
 # soil temperature has a significant effects on organic matter content.
 
@@ -164,6 +165,27 @@ OM.average <- as.data.frame(emmeans(om_model, ~warming * residue * irrigation))
   scale_color_manual(labels = c("No Residue", "Residue"),
                      values = c("#000000", "#009E73")) +
   theme)
+
+
+# om by irrigation
+
+OM.irrigation <- as.data.frame(emmeans(om_model, ~irrigation))
+
+(om_irr_plot <- ggplot(om.plot, aes(x = irrigation))+
+    geom_boxplot(aes(y = OM), color = "gray") +
+    geom_jitter(aes(y = OM), alpha = 0.2, size = 2, width = 0.1) +
+    geom_point(data = OM.irrigation,
+               aes(x = irrigation, y = emmean),
+               size = 5, shape = 15) +
+    geom_errorbar(data = OM.irrigation,
+                  aes(x = irrigation, ymin = emmean - SE,
+                      ymax = emmean + SE), linewidth = 1, width = 0.1) +
+    labs(x="Treatments", y = "Soil organic matter (%)") +
+    annotate(geom="text", x= 1, y= 0.9,
+             label="Irrigation: P = 0.005", size = 4.5) +
+    theme)
+
+
 
 #########################################################
 # MBC
@@ -222,16 +244,15 @@ AIC( mbc_model1, mbc_model2)
 # Gamma distribution looks better
 Anova(mbc_model1)
 plot(mbc_model1)
+r.squaredGLMM(mbc_model1)
 
 # pairwise comparison
 # we ran pairwise comparison for the significant interaction and
 # significant main effects.
 mbc.emm <- emmeans(mbc_model1, ~ irrigation)
-cld(mbc.emm)
 contrast(mbc.emm, "consec", simple = "each", combine = TRUE)
 
 mbc.emm.int <- emmeans(mbc_model1, ~ residue:warming)
-cld(mbc.emm.int)
 contrast(mbc.emm.int, "consec", simple = "each", combine = TRUE)
 
 
@@ -246,6 +267,7 @@ Anova(mbc_numeric)
 plot(mbc_numeric)
 qqnorm(residuals(mbc_numeric))
 hist(residuals(mbc_numeric))
+r.squaredGLMM(mbc_numeric)
 
 ###############################################
 # mbc by trt
@@ -316,6 +338,54 @@ pred_mbc_nit <- effect(mod = mbc_numeric, term = "nitrate") %>% as.data.frame()
     theme)
 
 
+# mbc by otc and residue
+
+mbc.otc.residue <- 
+  as.data.frame(emmeans(mbc_model1 , ~ warming * residue, type = "response"))
+
+(mbc_otc_res_plot <- ggplot(mbc.plot, aes(x = warming, color = residue)) +
+    geom_boxplot(aes(y = mbc, fill = residue), alpha = 0.01, color = "gray") +
+    geom_point(aes(y = mbc, color  = residue), alpha = 0.2, size = 2,
+               position = position_jitterdodge(dodge.width = 0.75, jitter.width = 0.1)) +
+    geom_point(data = mbc.otc.residue,
+               aes(x = warming, y = response, group = residue),
+               size = 5, shape = 15,
+               position = position_dodge(width = 0.75)) +
+    geom_errorbar(data = mbc.otc.residue, 
+                  aes(x = warming, ymin = response - SE,
+                      ymax = response + SE, group = residue), linewidth = 1,
+                  width = 0.1,
+                  position = position_dodge(width = 0.75)) +
+    labs(x="Treatments", y = ("Microbial Biomass Carbon (mg/kg)" )) +
+    scale_color_manual(labels = c("No Residue", "Residue"),
+                       values = c("#000000", "#009E73")) +
+    scale_fill_manual(labels = c("No Residue", "Residue"),
+                       values = c("#000000", "#009E73")) +
+    annotate(geom="text", x= 0.45, y= 185,
+             label="OTC: ns \nResidue: P = 0.001 \nOTC x Residue: P = 0.006",
+             size = 4.5, hjust = 0) +
+    theme)
+
+# mbc by irrigation
+
+mbc.irrigation <- 
+  as.data.frame(emmeans(mbc_model1 , ~irrigation, type = "response"))
+
+(mbc_irri_plot <- ggplot(mbc.plot, aes(x = irrigation)) +
+    geom_boxplot(aes(y = mbc), color = "gray") +
+    geom_jitter(aes(y = mbc), alpha = 0.2, size = 2, width = 0.1) +
+    geom_point(data = mbc.irrigation,
+               aes(x = irrigation, y = response),
+               size = 5, shape = 15) +
+    geom_errorbar(data = mbc.irrigation, 
+                  aes(x = irrigation, ymin = response - SE,
+                      ymax = response + SE), linewidth = 1, width = 0.1) +
+    labs(x="Treatments", y = ("Microbial Biomass Carbon (mg/kg)" )) +
+    annotate(geom="text", x= 1, y= 180,
+             label="Irrigation: P = 0.03", size = 4.5) +
+    theme)
+
+
 ###############################################
 
 # soil respiration
@@ -374,16 +444,14 @@ AIC(gresp_model1, gresp_model2, gresp_model3)
 # model 2 (inverse link gamma distribution looks better
 Anova(gresp_model2)
 plot(gresp_model2)
-
+r.squaredGLMM(gresp_model2)
 # pairwise comparison
 # we ran pairwise comparison for the significant interaction and
 # significant main effects.
 resp.emm <- emmeans(gresp_model2, ~ residue)
-cld(resp.emm)
 contrast(resp.emm, "consec", simple = "each", combine = TRUE)
 
 resp.emm.int <- emmeans(gresp_model2, ~ warming:irrigation)
-cld(resp.emm.int)
 contrast(resp.emm.int, "consec", simple = "each", combine = TRUE)
  
 # continuous predictor only model transformed
@@ -416,6 +484,7 @@ AIC(m_gresp1, m_gresp2)
 
 Anova(m_gresp2)
 plot(m_gresp2)
+r.squaredGLMM(m_gresp2)
 
 
 ###############################################
@@ -448,6 +517,87 @@ resp.average$lcl <- 1/(resp.average$asymp.LCL)
     theme(strip.background = element_blank(),
           strip.text = element_blank()))
 
+# respiration by residue
+
+resp.residue <- 
+  as.data.frame(emmeans(gresp_model2, ~residue, type = "response" ))
+
+(flux_res_plot <- ggplot(respiration, aes(x = residue)) +
+    geom_boxplot(aes(y = flux), color = "gray") +
+    geom_jitter(aes(y = flux), alpha = 0.2, size = 2, width = 0.1) +
+    geom_point(data = resp.residue,
+               aes(x = residue, y = response),
+               size = 5, shape = 15) +
+    geom_errorbar(data = resp.residue, 
+                  aes(x = residue, ymin = response - SE,
+                      ymax = response + SE), linewidth = 1, width = 0.1) +
+    labs(x="Treatments", y = expression("Soil respiration ("*mu~"mol" ~CO[2]~ m^-2~s^-1*")")) +
+    scale_y_continuous(limits = c(0, 15)) +
+    annotate(geom="text", x= 1, y= 14,
+             label= "Residue: P < 0.001",
+             size = 4.5) +
+    scale_x_discrete(labels = c("No residue", "Residue")) +
+    theme)
+
+# respiration by otc
+
+resp.otc <- 
+  as.data.frame(emmeans(gresp_model2, ~warming, type = "response" ))
+
+(flux_otc_plot <- ggplot(respiration, aes(x = warming)) +
+    geom_boxplot(aes(y = flux), color = "gray") +
+    geom_jitter(aes(y = flux), alpha = 0.2, size = 2, width = 0.1) +
+    geom_point(data = resp.otc,
+               aes(x = warming, y = response),
+               size = 5, shape = 15) +
+    geom_errorbar(data = resp.otc, 
+                  aes(x = warming, ymin = response - SE,
+                      ymax = response + SE), linewidth = 1, width = 0.1) +
+    labs(x="Treatments", y = expression("Soil respiration ("*mu~"mol" ~CO[2]~ m^-2~s^-1*")")) +
+    scale_y_continuous(limits = c(0, 15)) +
+    annotate(geom="text", x= 1, y= 15,
+             label= "OTC: P = 0.03",
+             size = 4.5) +
+    theme)
+
+
+# respiration by otc and irrigation
+resp.otc.irrigation <- 
+  as.data.frame(emmeans(gresp_model2, ~warming * irrigation, type = "response" )) 
+
+(flux_otc_irri_plot <- ggplot(respiration, aes(x = warming, color = irrigation)) +
+    geom_boxplot(aes(y = flux, fill = irrigation), alpha = 0.01, color = "gray") +
+    geom_point(aes(y = flux, color  = irrigation), alpha = 0.2, size = 2,
+               position = position_jitterdodge(dodge.width = 0.75, jitter.width = 0.1)) +
+    geom_point(data = resp.otc.irrigation,
+               aes(x = warming, y = response, group = irrigation),
+               size = 5, shape = 15,
+               position = position_dodge(width = 0.75)) +
+    geom_errorbar(data = resp.otc.irrigation, 
+                  aes(x = warming, ymin = response - SE,
+                      ymax = response + SE, group = irrigation),linewidth = 1, width = 0.1,
+                  position = position_dodge(width = 0.75)) +
+    labs(x="Treatments", y = expression("Soil respiration ("*mu~"mol" ~CO[2]~ m^-2~s^-1*")")) +
+    scale_color_manual(labels = c("Dryland", "Irrigated"),
+                       values = c("brown4", "navyblue")) +
+    scale_y_continuous(limits = c(0, 10)) +
+    annotate(geom="text", x= 0.45, y= 9.4,
+             label="OTC: P = 0.03 \nIrrigation: ns \nOTC x Irrigation: P = 0.02",
+             size = 4.5, hjust = 0) +
+    theme)
+
+
+ggarrange(om_irr_plot + rremove("xlab"),
+          mbc_irri_plot + rremove("xlab"),
+          flux_res_plot + rremove("xlab"),
+          flux_otc_plot + rremove("xlab"),
+          labels = "auto")
+
+ggarrange(mbc_otc_res_plot + rremove("xlab"),
+          flux_otc_irri_plot + rremove("xlab"),
+          common.legend = F,
+          labels = "auto")
+
 
 ####################################################
 # yield
@@ -473,12 +623,10 @@ aboveground_model <- lmer(above.ground.biomass ~ warming * residue * irrigation 
 Anova(aboveground_model)
 plot(aboveground_model)
 qqnorm(residuals(aboveground_model))
-hist(residuals(aboveground_model))
-
+r.squaredGLMM(aboveground_model)
 # pairwise comparison for significant main effects & interaction effects
 
 agb.emm <- emmeans(aboveground_model, ~ irrigation)
-cld(agb.emm)
 contrast(agb.emm, "consec", simple = "each", combine = TRUE)
 
 # model with continuous predictors 
@@ -510,7 +658,7 @@ agb <- as.data.frame(emmeans(aboveground_model, ~warming * residue * irrigation)
                       ymax = upper.CL, group = residue), width = 0.2,
                   position = position_dodge(width =0.75)) +
     facet_wrap(~ irrigation) + 
-    labs(x="Treatments", y = ("Aboveground Biomass (Kg/ha)"))+
+    labs(x="Treatments", y = ("Aboveground biomass (Kg/ha)"))+
     scale_color_manual(labels = c("No Residue", "Residue"),
                        values = c("#000000", "#009E73")) +
     theme)
@@ -536,6 +684,23 @@ pred_agb_om <- effect(mod =aboveground_model1 , term = "OM") %>% as.data.frame()
     theme)
 
 
+# aboveground biomass by irrigation
+agb_irr <- as.data.frame(emmeans(aboveground_model, ~irrigation))
+
+(agb_irr_graph <- ggplot(yield_data, aes(x = irrigation)) +
+    geom_boxplot(aes(y = above.ground.biomass), color = "gray") +
+    geom_jitter(aes(y = above.ground.biomass), alpha = 0.2, size = 2, width = 0.1) +
+    geom_point(data = agb_irr,
+               aes(x = irrigation, y = emmean),
+               size = 5, shape = 15) +
+    geom_errorbar(data = agb_irr,
+                  aes(x = irrigation, ymin = emmean - SE,
+                      ymax = emmean + SE),linewidth = 1, width = 0.1) +
+    labs(x="Treatments", y = ("Aboveground biomass (Kg/ha)"))+
+    annotate(geom="text", x= 1, y=5200, label="Irrigation: P < 0.001", size = 4.5) +
+    theme)
+
+
 ####################################################
 
 # seed.cotton yield model
@@ -548,15 +713,14 @@ Anova(yield_model)
 plot(yield_model)
 qqnorm(residuals(yield_model))
 hist(residuals(yield_model))
+r.squaredGLMM(yield_model)
 
 # pairwise comparison for significant main effects & interaction effects
 
 yield.emm.irri <- emmeans(yield_model, ~ irrigation)
-cld(yield.emm.irri)
 contrast(yield.emm.irri, "consec", simple = "each", combine = TRUE)
 
 yield.emm.residue <- emmeans(yield_model, ~ residue)
-cld(yield.emm.residue)
 contrast(yield.emm.residue, "consec", simple = "each", combine = TRUE)
 
 # model with continuous predictors only
@@ -587,12 +751,50 @@ seed.cotton <-
                       ymax = upper.CL, group = residue), width = 0.2,
                   position = position_dodge(width = 0.75)) +
     facet_wrap(~ irrigation) + 
-    labs(x="Treatments", y = ("Seed cotton Yield (kg/ha)")) +
+    labs(x="Treatments", y = ("Seed cotton yield (kg/ha)")) +
     scale_color_manual(labels = c("No Residue", "Residue"),
                        values = c("#000000", "#009E73")) +
     theme +
     theme(strip.background = element_blank(),
           strip.text = element_blank()))
+
+
+# yield by irrigation
+
+yield_irr <- as.data.frame(emmeans(yield_model, ~irrigation))
+
+(yield_irr_graph <- ggplot(yield_data, aes(x = irrigation)) +
+    geom_boxplot(aes(y = seed.cotton), color = "gray") +
+    geom_jitter(aes(y = seed.cotton), alpha = 0.2, size = 2, width = 0.1) +
+    geom_point(data = yield_irr,
+               aes(x = irrigation, y = emmean),
+               size = 5, shape = 15) +
+    geom_errorbar(data = yield_irr,
+                  aes(x = irrigation, ymin = emmean - SE,
+                      ymax = emmean + SE), linewidth = 1, width = 0.1) +
+    labs(x="Treatments", y = ("Seed cotton yield (kg/ha)"))+
+    annotate(geom="text", x= 1, y=3500, label="Irrigation: P = 0.008", size = 4.5) +
+    theme)
+
+# yield by residue
+
+yield_residue <- as.data.frame(emmeans(yield_model, ~residue))
+
+(yield_residue_graph <- ggplot(yield_data, aes(x = residue)) +
+    geom_boxplot(aes(y = seed.cotton),color = "gray") +
+    geom_jitter(aes(y = seed.cotton), alpha = 0.2, size = 2, width = 0.1) +
+    geom_point(data = yield_residue,
+               aes(x = residue, y = emmean),
+               size = 5, shape = 15) +
+    geom_errorbar(data = yield_residue,
+                  aes(x = residue, ymin = emmean - SE,
+                      ymax = emmean + SE), linewidth = 1, width = 0.1) +
+    labs(x="Treatments", y = ("Seed cotton yield (kg/ha)"))+
+    scale_x_discrete(labels = c("No residue", "Residue")) +
+    annotate(geom="text", x= 1, y=3500, label="Residue: P = 0.03", size = 4.5) +
+    theme)
+
+
 
 ####################################################
 # # below ground biomass model
@@ -606,12 +808,12 @@ Anova(bgb_model)
 plot(bgb_model)
 qqnorm(residuals(bgb_model))
 hist(residuals(bgb_model))
+r.squaredGLMM(bgb_model)
 
 
 # pairwise comparison for significant predictors
 
 bgb.emm <- emmeans(bgb_model, ~ irrigation)
-cld(bgb.emm)
 contrast(bgb.emm, "consec", simple = "each", combine = TRUE)
 
 # model with continuous predictors only
@@ -649,6 +851,54 @@ bgb <- as.data.frame(emmeans(bgb_model, ~warming * residue * irrigation))
     theme +
     theme(strip.background = element_blank(),
           strip.text = element_blank()))
+
+# belowground biomass by irrigation
+
+bgb_irr <- as.data.frame(emmeans(bgb_model, ~irrigation))
+
+
+
+(bgb_irr_graph <- ggplot(yield_data, aes(x = irrigation)) +
+    geom_boxplot(aes(y = rootbiomass), color = "gray") +
+    geom_jitter(aes(y = rootbiomass), alpha = 0.2, size = 2, width = 0.1) +
+    geom_point(data = bgb_irr,
+               aes(x = irrigation, y = emmean),
+               size = 5, shape = 15) +
+    geom_errorbar(data = bgb_irr,
+                  aes(x = irrigation, ymin = emmean - SE,
+                      ymax = emmean + SE), linewidth = 1, width = 0.1) +
+    labs(x="Treatments", y = ("Belowground biomass (Kg/ha)"))+
+    annotate(geom="text", x= 1, y = 4.5, label="Irrigation: P = 0.002", size = 4.5) +
+    theme)
+
+# belowground biomass by residue
+
+bgb_residue <- as.data.frame(emmeans(bgb_model, ~residue))
+
+(bgb_residue_graph <- ggplot(yield_data, aes(x = residue)) +
+    geom_boxplot(aes(y = rootbiomass), color = "gray") +
+    geom_jitter(aes(y = rootbiomass), alpha = 0.2, size = 2, width = 0.1) +
+    geom_point(data = bgb_residue,
+               aes(x = residue, y = emmean),
+               size = 5, shape = 15) +
+    geom_errorbar(data = bgb_residue,
+                  aes(x = residue, ymin = emmean - SE,
+                      ymax = emmean + SE), linewidth = 1, width = 0.1) +
+    labs(x="Treatments", y = ("Belowground biomass (Kg/ha)"))+
+    scale_x_discrete(labels = c("No residue", "Residue")) +
+    annotate(geom="text", x= 1, y = 4.5, label="Residue: P = 0.05", size = 4.5) +
+    theme)
+
+
+ggarrange(agb_irr_graph + rremove("xlab"),
+          bgb_irr_graph + rremove("xlab"),
+          yield_irr_graph + rremove("xlab"),
+          yield_residue_graph + rremove("xlab"),
+          align = "v",
+          labels = "auto")
+
+
+
 
 #######################################################
 # plots
