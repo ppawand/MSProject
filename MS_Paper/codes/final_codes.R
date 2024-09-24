@@ -136,9 +136,9 @@ pred_c <- effect(mod = om_model1, term = "temp") %>% as.data.frame()
   scale_color_manual(labels = c("Dryland", "Irrigated"),
                       values = c("brown4", "navyblue")) + 
   scale_y_continuous(limits = c(0, 1.2)) +
-  scale_shape_manual(labels = c("No Residue", "Residue"),
+  scale_shape_manual(labels = c("No residue", "Residue"),
                        values = c(21,22)) +
-  labs( y = "Organic matter (%)", 
+  labs( y = "Soil organic matter (%)", 
         x = expression("Soil temperature ("*~degree*C*")")) +
   theme)
 
@@ -160,11 +160,11 @@ OM.average <- as.data.frame(emmeans(om_model, ~warming * residue * irrigation))
                   aes(x = warming, ymin = emmean - SE,
                       ymax = emmean + SE, group = residue), width = 0.2,
                   position = position_dodge(width = 0.75)) +
-  labs(x="Treatments", y = "Soil Organic Matter (%)") +
+  labs(x="Treatments", y = "Soil organic matter (%)") +
   facet_wrap(~irrigation) +
-  scale_color_manual(labels = c("No Residue", "Residue"),
+  scale_color_manual(labels = c("No residue", "Residue"),
                      values = c("#000000", "#009E73")) +
-  scale_fill_manual(labels = c("No Residue", "Residue"),
+  scale_fill_manual(labels = c("No residue", "Residue"),
                        values = c("#000000", "#009E73")) +
   theme)
 
@@ -290,10 +290,10 @@ mbc.average <-
                     ymax = response + SE, group = residue), width = 0.2,
                 position = position_dodge(width = 0.75)) +
     facet_wrap(~ irrigation) + 
-    labs(x="Treatments", y = ("Microbial Biomass Carbon (mg/kg)" )) +
-    scale_color_manual(labels = c("No Residue", "Residue"),
+    labs(x="Treatments", y = ("Microbial biomass carbon (mg/kg)" )) +
+    scale_color_manual(labels = c("No residue", "Residue"),
                      values = c("#000000", "#009E73")) +
-    scale_fill_manual(labels = c("No Residue", "Residue"),
+    scale_fill_manual(labels = c("No residue", "Residue"),
                        values = c("#000000", "#009E73")) +
     theme +
     theme(strip.background = element_blank(),
@@ -313,8 +313,8 @@ pred_mbc_om <- effect(mod = mbc_numeric, term = "om") %>% as.data.frame()
                       values = c("brown4", "navyblue")) +
     scale_fill_manual(labels = c("Dryland", "Irrigated"),
                        values = c("brown4", "navyblue")) +
-    labs(x = "Organic Matter (%)", y = "Microbial biomass (mg/kg)") +
-    scale_shape_manual(labels = c("No Residue", "Residue"),
+    labs(x = "Soil organic matter (%)", y = "Microbial biomass carbon (mg/kg)") +
+    scale_shape_manual(labels = c("No residue", "Residue"),
                        values = c(21,22)) +
   theme)
 
@@ -332,8 +332,8 @@ pred_mbc_nit <- effect(mod = mbc_numeric, term = "nitrate") %>% as.data.frame()
                        values = c("brown4", "navyblue")) +
     scale_fill_manual(labels = c("Dryland", "Irrigated"),
                       values = c("brown4", "navyblue")) +
-    labs(x = "Nitrate N (ppm)", y = "Microbial biomass (mg/kg)") +
-    scale_shape_manual(labels = c("No Residue", "Residue"),
+    labs(x = "Nitrate N (ppm)", y = "Microbial biomass carbon (mg/kg)") +
+    scale_shape_manual(labels = c("No residue", "Residue"),
                        values = c(21,22)) +
     scale_x_continuous(breaks = seq(2, 12, by = 2), limits = c(2, 12)) +
     theme)
@@ -357,10 +357,10 @@ mbc.otc.residue <-
                       ymax = response + SE, group = residue), linewidth = 1,
                   width = 0.1,
                   position = position_dodge(width = 0.75)) +
-    labs(x="Treatments", y = ("Microbial Biomass Carbon (mg/kg)" )) +
-    scale_color_manual(labels = c("No Residue", "Residue"),
+    labs(x="Treatments", y = ("Microbial biomass carbon (mg/kg)" )) +
+    scale_color_manual(labels = c("No residue", "Residue"),
                        values = c("#000000", "#009E73")) +
-    scale_fill_manual(labels = c("No Residue", "Residue"),
+    scale_fill_manual(labels = c("No residue", "Residue"),
                        values = c("#000000", "#009E73")) +
     annotate(geom="text", x= 0.45, y= 185,
              label="OTC: ns \nResidue: P = 0.001 \nOTC x Residue: P = 0.006",
@@ -381,7 +381,7 @@ mbc.irrigation <-
     geom_errorbar(data = mbc.irrigation, 
                   aes(x = irrigation, ymin = response - SE,
                       ymax = response + SE), linewidth = 1, width = 0.1) +
-    labs(x="Treatments", y = ("Microbial Biomass Carbon (mg/kg)" )) +
+    labs(x="Treatments", y = ("Microbial biomass carbon (mg/kg)" )) +
     annotate(geom="text", x= 1, y= 180,
              label="Irrigation: P = 0.03", size = 4.5) +
     theme)
@@ -506,10 +506,11 @@ resp.average <-
                       ymax = response + SE, group = residue), width = 0.2,
                   position = position_dodge(width = 0.75)) +
     facet_wrap(~ irrigation) + 
-    labs(x="Treatments", y = expression("Soil respiration ("*mu~"mol" ~CO[2]~ m^-2~s^-1*")")) +
-    scale_color_manual(labels = c("No Residue", "Residue"),
+    labs(x="Treatments", 
+           y = expression("Soil respiration (" * mu ~ "mol" ~ CO[2] ~ m^{paste("\u2212", 2)} ~ s^{paste("\u2212", 1)} * ")"))+
+    scale_color_manual(labels = c("No residue", "Residue"),
                        values = c("#000000", "#009E73")) +
-    scale_fill_manual(labels = c("No Residue", "Residue"),
+    scale_fill_manual(labels = c("No residue", "Residue"),
                        values = c("#000000", "#009E73")) +
     scale_y_continuous(limits = c(0, 15)) +
     theme +
@@ -530,7 +531,8 @@ resp.residue <-
     geom_errorbar(data = resp.residue, 
                   aes(x = residue, ymin = response - SE,
                       ymax = response + SE), linewidth = 1, width = 0.1) +
-    labs(x="Treatments", y = expression("Soil respiration ("*mu~"mol" ~CO[2]~ m^-2~s^-1*")")) +
+    labs(x="Treatments", 
+         y = expression("Soil respiration (" * mu ~ "mol" ~ CO[2] ~ m^{paste("\u2212", 2)} ~ s^{paste("\u2212", 1)} * ")"))+
     scale_y_continuous(limits = c(0, 15)) +
     annotate(geom="text", x= 1, y= 14,
              label= "Residue: P < 0.001",
@@ -552,7 +554,8 @@ resp.otc <-
     geom_errorbar(data = resp.otc, 
                   aes(x = warming, ymin = response - SE,
                       ymax = response + SE), linewidth = 1, width = 0.1) +
-    labs(x="Treatments", y = expression("Soil respiration ("*mu~"mol" ~CO[2]~ m^-2~s^-1*")")) +
+    labs(x="Treatments", 
+         y = expression("Soil respiration (" * mu ~ "mol" ~ CO[2] ~ m^{paste("\u2212", 2)} ~ s^{paste("\u2212", 1)} * ")"))+
     scale_y_continuous(limits = c(0, 15)) +
     annotate(geom="text", x= 1, y= 15,
              label= "OTC: P = 0.03",
@@ -576,7 +579,8 @@ resp.otc.irrigation <-
                   aes(x = warming, ymin = response - SE,
                       ymax = response + SE, group = irrigation),linewidth = 1, width = 0.1,
                   position = position_dodge(width = 0.75)) +
-    labs(x="Treatments", y = expression("Soil respiration ("*mu~"mol" ~CO[2]~ m^-2~s^-1*")")) +
+    labs(x="Treatments", 
+         y = expression("Soil respiration (" * mu ~ "mol" ~ CO[2] ~ m^{paste("\u2212", 2)} ~ s^{paste("\u2212", 1)} * ")"))+
     scale_color_manual(labels = c("Dryland", "Irrigated"),
                        values = c("brown4", "navyblue")) +
     scale_y_continuous(limits = c(0, 10)) +
@@ -586,13 +590,13 @@ resp.otc.irrigation <-
     theme)
 
 
-ggarrange(om_irr_plot + rremove("xlab"),
+fig_4 <- ggarrange(om_irr_plot + rremove("xlab"),
           mbc_irri_plot + rremove("xlab"),
           flux_res_plot + rremove("xlab"),
           flux_otc_plot + rremove("xlab"),
           labels = "auto")
 
-ggarrange(mbc_otc_res_plot + rremove("xlab"),
+fig_5 <- ggarrange(mbc_otc_res_plot + rremove("xlab"),
           flux_otc_irri_plot + rremove("xlab"),
           common.legend = F,
           labels = "auto")
@@ -658,7 +662,7 @@ agb <- as.data.frame(emmeans(aboveground_model, ~warming * residue * irrigation)
                   position = position_dodge(width =0.75)) +
     facet_wrap(~ irrigation) + 
     labs(x="Treatments", y = ("Aboveground biomass (Kg/ha)"))+
-    scale_color_manual(labels = c("No Residue", "Residue"),
+    scale_color_manual(labels = c("No residue", "Residue"),
                        values = c("#000000", "#009E73")) +
     theme)
 
@@ -677,8 +681,8 @@ pred_agb_om <- effect(mod =aboveground_model1 , term = "OM") %>% as.data.frame()
                        values = c("brown4", "navyblue")) +
     scale_fill_manual(labels = c("Dryland", "Irrigated"),
                       values = c("brown4", "navyblue")) +
-    labs(x = "Organic Matter (%)", y = "Above Ground Biomass (Kg/ha)") +
-    scale_shape_manual(labels = c("No Residue", "Residue"),
+    labs(x = "Soil organic Matter (%)", y = "Above Ground Biomass (Kg/ha)") +
+    scale_shape_manual(labels = c("No residue", "Residue"),
                        values = c(21,22)) +
     theme)
 
@@ -751,7 +755,7 @@ seed.cotton <-
                   position = position_dodge(width = 0.75)) +
     facet_wrap(~ irrigation) + 
     labs(x="Treatments", y = ("Seed cotton yield (kg/ha)")) +
-    scale_color_manual(labels = c("No Residue", "Residue"),
+    scale_color_manual(labels = c("No residue", "Residue"),
                        values = c("#000000", "#009E73")) +
     theme +
     theme(strip.background = element_blank(),
@@ -845,7 +849,7 @@ bgb <- as.data.frame(emmeans(bgb_model, ~warming * residue * irrigation))
                   position = position_dodge(width = 0.75)) +
     facet_wrap(~ irrigation) + 
     labs(x="Treatments", y = ("Belowground Biomass (g)"))+
-    scale_color_manual(labels = c("No Residue", "Residue"),
+    scale_color_manual(labels = c("No residue", "Residue"),
                        values = c("#000000", "#009E73")) +
     theme +
     theme(strip.background = element_blank(),
@@ -889,19 +893,27 @@ bgb_residue <- as.data.frame(emmeans(bgb_model, ~residue))
     theme)
 
 
-ggarrange(agb_irr_graph + rremove("xlab"),
+fig_7 <- ggarrange(agb_irr_graph + rremove("xlab"),
           bgb_irr_graph + rremove("xlab"),
           yield_irr_graph + rremove("xlab"),
           yield_residue_graph + rremove("xlab"),
           align = "v",
           labels = "auto")
 
-
+ggsave(filename = "Figure 7.pdf", plot = fig_7, width = 10, height = 8, units = "in",
+       dpi = 350)
 
 
 #######################################################
 # plots
 
+setwd("~/Desktop/MSProject/MS_Paper/graphs/")
+
+ggsave(filename = "Figure 4.pdf", plot = fig_4, width = 10, height = 8, units = "in",
+       dpi = 350)
+
+ggsave(filename = "Figure 5.pdf", plot = fig_5, width = 10, height = 5, units = "in",
+       dpi = 350)
 # Supplemental Figure S3
 
 ggarrange(om_graph + rremove("xlab") + rremove("x.text") ,
@@ -914,13 +926,16 @@ ggarrange(om_graph + rremove("xlab") + rremove("x.text") ,
           vjust = 0.3)
 
 # figure 6
-ggarrange(om_temp_graph,
+fig_6 <- ggarrange(om_temp_graph,
           mbc_om_graph,
           mbc_nitrate_graph,
           common.legend = T,
           allign = "v",
           labels = "auto",
           vjust = 0.3)
+
+ggsave(filename = "Figure 6.pdf", plot = fig_6, width = 10, height = 8, units = "in",
+       dpi = 350)
 
 # Supplemental Figure S4
 

@@ -232,7 +232,7 @@ weekly.rain$week <- as.POSIXct(weekly.rain$week)
 
 ####################################################
 # temporal variation of moisture (graph)
-(fig2 <- ggplot(weekly.TM, aes(week, color = trt)) + 
+(moist_trend <- ggplot(weekly.TM, aes(week, color = trt)) + 
   geom_line(aes(y = moist), linewidth = 1) +  
    geom_bar(data = weekly.rain, aes(x = week, y = rain/100), width = 0.01, 
                                     stat = "identity", 
@@ -455,14 +455,14 @@ confint(emmeans(dtr_model,  ~ warming))
     theme)
 
 
-ggarrange(temp_residue_plot + rremove("xlab"), 
+fig_2<- ggarrange(temp_residue_plot + rremove("xlab"), 
           temp_irrigation_plot + rremove("ylab") + rremove("xlab"),
           dtr_residue_plot + rremove("xlab"),
           dtr_otc_plot + rremove("xlab") + rremove("ylab"),
           labels = "auto",
           align = "v")
 
-# export to 8 * 10
+
 
 ##################################################
 # moisture model
@@ -508,6 +508,12 @@ moist.plot.avg <-
     labs(x="Treatments", y = expression("VWC ("*m^3/m^3*")")) +
     facet_grid( ~ irrigation) +
     theme)
+
+fig_3 <- ggarrange(moist_trend + rremove("xlab"),
+                   moist.graph + rremove("xlab"),
+                   common.legend = F,
+                   ncol = 1,
+                   labels = "auto")
 
 
 #################################################
@@ -569,7 +575,7 @@ hourly.avg.airtemp <- air.temp %>%
                      labels = c("12 AM", "2 AM", "4 AM", "6 AM", " 8 AM",
                                 "10 AM", "12 PM", "2 PM", "4 PM", "6 PM",
                                 "8 PM", "10 PM")) +
-  labs(x = "Time of the day", y = expression("Air Temperature ("*~degree*C*")")) +
+  labs(x = "Time of the day", y = expression("Air temperature ("*~degree*C*")")) +
   scale_color_manual(values = c("#131E3A", "#980019"),
                      labels = c("C","OTC")) +
   theme +
@@ -687,7 +693,24 @@ air.temp.otc.irr <- as.data.frame(emmeans(air_temp_model, ~ warming * irrigation
 
 ####################################################
 
+# Figure 1
 
+fig1 <- ggarrange(fig1 + rremove("xlab") + rremove ("x.text"),
+          fig6 + rremove("xlab"),
+          common.legend = T,
+          ncol = 1,
+          labels = "auto")
+
+setwd("~/Desktop/MSProject/MS_Paper/graphs/")
+
+ggsave(filename = "Figure 1.pdf", plot = fig1, width = 10, height = 8, units = "in",
+       dpi = 350)
+
+ggsave(filename = "Figure 2.pdf", plot = fig_2, width = 10, height = 8, units = "in",
+       dpi = 350)
+
+ggsave(filename = "Figure 3.pdf", plot = fig_3, width = 10, height = 8, units = "in",
+       dpi = 350)
 
 # supplemental figure S1
 
